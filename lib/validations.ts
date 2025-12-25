@@ -25,13 +25,13 @@ export const projectCreateSchema = z.object({
     .min(2, 'Le code doit contenir au moins 2 caractères')
     .max(20, 'Le code doit contenir au maximum 20 caractères')
     .regex(/^[A-Z0-9-]+$/, 'Le code ne peut contenir que des lettres majuscules, chiffres et tirets'),
-  description: z.string().optional(),
-  hourlyRate: z.number().positive().optional(),
-  budgetHours: z.number().positive().optional(),
+  description: z.string().optional().nullable(),
+  hourlyRate: z.number().nonnegative('Le taux horaire doit être positif ou nul').optional().nullable(),
+  budgetHours: z.number().nonnegative('Le budget heures doit être positif ou nul').optional().nullable(),
   isBillable: z.boolean().default(true),
-  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
-  startDate: z.string().datetime().optional(),
-  endDate: z.string().datetime().optional(),
+  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Couleur invalide').optional().nullable(),
+  startDate: z.string().optional().nullable(),
+  endDate: z.string().optional().nullable(),
 });
 
 export const projectUpdateSchema = projectCreateSchema.partial();

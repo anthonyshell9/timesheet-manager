@@ -128,9 +128,17 @@ export default function ProjectsPage() {
         resetForm();
         fetchProjects();
       } else {
+        // Format detailed error messages if available
+        let errorMsg = data.error || 'Erreur inconnue';
+        if (data.errors) {
+          const fieldErrors = Object.entries(data.errors)
+            .map(([field, msgs]) => `${field}: ${(msgs as string[]).join(', ')}`)
+            .join('\n');
+          errorMsg = fieldErrors || errorMsg;
+        }
         toast({
           title: 'Erreur',
-          description: data.error,
+          description: errorMsg,
           variant: 'destructive',
         });
       }
