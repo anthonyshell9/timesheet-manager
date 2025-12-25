@@ -1,0 +1,31 @@
+# Copy this file to terraform.tfvars and fill in the values
+# NEVER commit terraform.tfvars to version control
+
+resource_group_name = "rg-timesheet-prod"
+location            = "westeurope"
+environment         = "prod"
+
+app_service_sku = {
+  tier = "Standard"
+  size = "S1"
+}
+
+postgresql_sku        = "B_Standard_B1ms"
+postgresql_storage_mb = 32768
+postgresql_version    = "16"
+
+# REQUIRED: Azure AD configuration
+azure_ad_tenant_id     = "your-tenant-id"
+azure_ad_client_id     = "your-client-id"
+azure_ad_client_secret = "your-client-secret"
+
+# Optional: SendGrid for emails
+sendgrid_api_key = ""
+
+# Optional: Alert email
+alert_email = "admin@yourdomain.com"
+
+# Compliance settings
+log_retention_days          = 1825  # 5 years
+backup_retention_days       = 35
+enable_geo_redundant_backup = true

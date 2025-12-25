@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - '3000:3000'
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/timesheet?schema=public
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_SECRET=development-secret-change-in-production
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - timesheet-network
+
+  db:
+    image: postgres:16-alpine
+    ports:
+      - '5432:5432'
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=timesheet
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - timesheet-network
+
+  adminer:
+    image: adminer
+    ports:
+      - '8080:8080'
+    depends_on:
+      - db
+    networks:
+      - timesheet-network
+
+volumes:
+  postgres-data:
+
+networks:
+  timesheet-network:
+    driver: bridge

@@ -1,0 +1,339 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== ENUMS ====================
+
+enum Role {
+  ADMIN
+  VALIDATOR
+  USER
+}
+
+enum TimesheetStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+  REOPENED
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum AuditAction {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  SUBMIT
+  APPROVE
+  REJECT
+  REOPEN
+  EXPORT
+  IMPORT
+}
+
+// ==================== MODELS ====================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  image         String?
+  role          Role      @default(USER)
+  azureAdId     String?   @unique
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastLoginAt   DateTime?
+
+  // Relations
+  managerId     String?
+  manager       User?     @relation("ManagerSubordinates", fields: [managerId], references: [id])
+  subordinates  User[]    @relation("ManagerSubordinates")
+
+  // Time entries and timesheets
+  timeEntries   TimeEntry[]
+  timesheets    TimeSheet[]
+
+  // Approvals (as validator)
+  approvals     Approval[]
+
+  // Locked timesheets (by this user)
+  lockedSheets  TimeSheet[] @relation("LockedBy")
+
+  // Audit logs
+  auditLogs     AuditLog[]
+
+  // Projects assigned to validate
+  validatingProjects ProjectValidator[]
+
+  // Notifications
+  notifications Notification[]
+
+  // Sessions for NextAuth
+  accounts      Account[]
+  sessions      Session[]
+
+  @@index([email])
+  @@index([azureAdId])
+  @@index([managerId])
+  @@index([role])
+}
+
+// NextAuth.js models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Project management
+model Project {
+  id            String   @id @default(cuid())
+  name          String
+  code          String   @unique
+  description   String?
+  hourlyRate    Decimal? @db.Decimal(10, 2)
+  budgetHours   Decimal? @db.Decimal(10, 2)
+  isActive      Boolean  @default(true)
+  isBillable    Boolean  @default(true)
+  color         String?  @default("#3B82F6")
+  startDate     DateTime?
+  endDate       DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  subProjects   SubProject[]
+  timeEntries   TimeEntry[]
+  validators    ProjectValidator[]
+
+  @@index([code])
+  @@index([isActive])
+}
+
+model SubProject {
+  id          String   @id @default(cuid())
+  name        String
+  code        String?
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  timeEntries TimeEntry[]
+
+  @@unique([projectId, name])
+  @@index([projectId])
+}
+
+model ProjectValidator {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
+}
+
+// Time tracking
+model TimeEntry {
+  id            String    @id @default(cuid())
+  date          DateTime  @db.Date
+  startTime     String?   // HH:mm format
+  endTime       String?   // HH:mm format
+  duration      Int       // Duration in minutes
+  description   String?
+  isBillable    Boolean   @default(true)
+  isTimerEntry  Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  projectId     String
+  project       Project   @relation(fields: [projectId], references: [id])
+
+  subProjectId  String?
+  subProject    SubProject? @relation(fields: [subProjectId], references: [id])
+
+  timesheetId   String?
+  timesheet     TimeSheet? @relation(fields: [timesheetId], references: [id])
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([subProjectId])
+  @@index([timesheetId])
+  @@index([date])
+  @@index([userId, date])
+}
+
+model TimeSheet {
+  id          String          @id @default(cuid())
+  weekStart   DateTime        @db.Date
+  weekEnd     DateTime        @db.Date
+  status      TimesheetStatus @default(DRAFT)
+  totalHours  Decimal         @default(0) @db.Decimal(10, 2)
+  submittedAt DateTime?
+  lockedAt    DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  // Hash for integrity verification
+  integrityHash String?
+
+  // Relations
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  lockedById  String?
+  lockedBy    User?     @relation("LockedBy", fields: [lockedById], references: [id])
+
+  timeEntries TimeEntry[]
+  approvals   Approval[]
+
+  @@unique([userId, weekStart])
+  @@index([userId])
+  @@index([status])
+  @@index([weekStart])
+  @@index([userId, status])
+}
+
+model Approval {
+  id          String         @id @default(cuid())
+  status      ApprovalStatus @default(PENDING)
+  comment     String?
+  signature   String?        // Digital signature for critical actions
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  // Relations
+  timesheetId String
+  timesheet   TimeSheet @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
+
+  validatorId String
+  validator   User      @relation(fields: [validatorId], references: [id])
+
+  @@index([timesheetId])
+  @@index([validatorId])
+  @@index([status])
+}
+
+// Audit logging for compliance
+model AuditLog {
+  id          String      @id @default(cuid())
+  action      AuditAction
+  resource    String      // Table/model name
+  resourceId  String      // ID of the affected resource
+  details     Json?       // Additional details as JSON
+  oldValues   Json?       // Previous values for updates
+  newValues   Json?       // New values for updates
+  ip          String?
+  userAgent   String?
+  sessionId   String?
+  signature   String?     // Hash for integrity
+  createdAt   DateTime    @default(now())
+
+  // Relations
+  userId      String?
+  user        User?       @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([action])
+  @@index([resource])
+  @@index([resourceId])
+  @@index([createdAt])
+  @@index([userId, action])
+  @@index([resource, resourceId])
+}
+
+// Notifications
+model Notification {
+  id          String   @id @default(cuid())
+  type        String   // TIMESHEET_SUBMITTED, TIMESHEET_APPROVED, etc.
+  title       String
+  message     String
+  data        Json?    // Additional data
+  isRead      Boolean  @default(false)
+  readAt      DateTime?
+  createdAt   DateTime @default(now())
+
+  // Relations
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@index([userId, isRead])
+}
+
+// Settings
+model Setting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json
+  category  String   @default("general")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+}
