@@ -42,9 +42,24 @@ jobs:
       - name: Regenerate Prisma client for production
         run: npx prisma generate
 
+      - name: Create deployment package
+        run: |
+          mkdir -p deploy
+          cp -r .next deploy/
+          cp -r node_modules deploy/
+          cp -r prisma deploy/
+          cp -r public deploy/
+          cp package.json deploy/
+          cp next.config.js deploy/
+          cd deploy && zip -r ../app.zip .
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: .
+          package: app.zip
