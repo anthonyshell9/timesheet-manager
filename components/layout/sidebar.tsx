@@ -175,9 +175,9 @@ export function Sidebar() {
             <DropdownMenuLabel>Mon compte</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href="/profile" className="flex items-center">
+              <Link href="/settings" className="flex items-center">
                 <User className="mr-2 h-4 w-4" />
-                Profil
+                Paramètres
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />

@@ -9,6 +9,7 @@ export default withAuth(
     const isTOTPVerifyPage = pathname === '/auth/totp-verify';
     const isTOTPSetupPage = pathname === '/auth/totp-setup';
     const isSignInPage = pathname === '/auth/signin';
+    const isSignOutPage = pathname === '/auth/signout';
     const isApiRoute = pathname.startsWith('/api');
     const isPublicApiRoute =
       pathname === '/api/health' || pathname === '/api/docs';
@@ -21,19 +22,46 @@ export default withAuth(
 
     // If user is authenticated
     if (token) {
-      // Check if TOTP verification is required
-      const requiresTOTP = token.requiresTOTP;
+      const isLocalAccount = token.isLocalAccount;
+      const totpEnabled = token.totpEnabled;
       const totpVerified = token.totpVerified;
-      const needsTOTPVerification = requiresTOTP && !totpVerified;
 
-      // Allow TOTP API routes for users needing verification
+      // Local accounts MUST have TOTP enabled
+      const needsTOTPSetup = isLocalAccount && !totpEnabled;
+      // If TOTP is enabled, must be verified
+      const needsTOTPVerification = totpEnabled && !totpVerified;
+
+      // Allow TOTP API routes for users needing setup/verification
       if (isTOTPApiRoute) {
         const response = NextResponse.next();
         addSecurityHeaders(response);
         return response;
       }
 
-      // If user needs TOTP verification
+      // Allow signout
+      if (isSignOutPage) {
+        const response = NextResponse.next();
+        addSecurityHeaders(response);
+        return response;
+      }
+
+      // If local account needs TOTP setup (first login)
+      if (needsTOTPSetup) {
+        // Allow access to TOTP setup page
+        if (isTOTPSetupPage) {
+          const response = NextResponse.next();
+          addSecurityHeaders(response);
+          return response;
+        }
+
+        // Redirect all other pages to TOTP setup
+        if (!isSignInPage && !isSignOutPage) {
+          const url = new URL('/auth/totp-setup', req.url);
+          return NextResponse.redirect(url);
+        }
+      }
+
+      // If user needs TOTP verification (already set up, needs to verify code)
       if (needsTOTPVerification) {
         // Allow access to TOTP verify page
         if (isTOTPVerifyPage) {
@@ -43,28 +71,24 @@ export default withAuth(
         }
 
         // Redirect all other pages to TOTP verification
-        if (!isSignInPage) {
+        if (!isSignInPage && !isSignOutPage) {
           const url = new URL('/auth/totp-verify', req.url);
           url.searchParams.set('callbackUrl', pathname);
           return NextResponse.redirect(url);
         }
       }
 
-      // If user is authenticated and TOTP verified (or not required)
+      // If user is authenticated and TOTP complete
       // Redirect from sign-in page to dashboard
-      if (isSignInPage) {
+      if (isSignInPage && !needsTOTPSetup && !needsTOTPVerification) {
         return NextResponse.redirect(new URL('/dashboard', req.url));
       }
 
-      // Allow TOTP setup page
-      if (isTOTPSetupPage) {
-        const response = NextResponse.next();
-        addSecurityHeaders(response);
-        return response;
+      // If TOTP is set up and verified, redirect away from setup/verify pages
+      if (isTOTPSetupPage && totpEnabled) {
+        return NextResponse.redirect(new URL('/dashboard', req.url));
       }
-
-      // If user has verified TOTP, redirect away from TOTP verify page
-      if (isTOTPVerifyPage && !needsTOTPVerification) {
+      if (isTOTPVerifyPage && (!totpEnabled || totpVerified)) {
         return NextResponse.redirect(new URL('/dashboard', req.url));
       }
 

@@ -13,14 +13,16 @@ declare module 'next-auth' {
       name: string;
       image?: string;
       role: Role;
-      requiresTOTP?: boolean;
+      isLocalAccount?: boolean;
+      totpEnabled?: boolean;
       totpVerified?: boolean;
     };
   }
 
   interface User {
     role: Role;
-    requiresTOTP?: boolean;
+    isLocalAccount?: boolean;
+    totpEnabled?: boolean;
   }
 }
 
@@ -28,7 +30,8 @@ declare module 'next-auth/jwt' {
   interface JWT {
     id: string;
     role: Role;
-    requiresTOTP?: boolean;
+    isLocalAccount?: boolean;
+    totpEnabled?: boolean;
     totpVerified?: boolean;
   }
 }
@@ -196,18 +199,20 @@ export const authOptions: NextAuthOptions = {
         // Initial sign in
         const dbUser = await prisma.user.findUnique({
           where: { email: user.email! },
-          select: { id: true, role: true, totpEnabled: true },
+          select: { id: true, role: true, totpEnabled: true, password: true },
         });
 
         if (dbUser) {
           token.id = dbUser.id;
           token.role = dbUser.role;
-          token.requiresTOTP = dbUser.totpEnabled;
+          token.isLocalAccount = !!dbUser.password;
+          token.totpEnabled = dbUser.totpEnabled;
+          // Azure AD users are always verified, local users need TOTP verification if enabled
           token.totpVerified = account.provider === 'azure-ad' ? true : !dbUser.totpEnabled;
         }
       }
 
-      // Handle session update (e.g., TOTP verification)
+      // Handle session update (e.g., TOTP verification or setup completion)
       if (trigger === 'update' && token) {
         // Check if this is a TOTP verification update
         if (session?.totpVerified === true) {
@@ -217,11 +222,12 @@ export const authOptions: NextAuthOptions = {
         // Refresh user data from database
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id },
-          select: { role: true, totpEnabled: true },
+          select: { role: true, totpEnabled: true, password: true },
         });
         if (dbUser) {
           token.role = dbUser.role;
-          token.requiresTOTP = dbUser.totpEnabled;
+          token.isLocalAccount = !!dbUser.password;
+          token.totpEnabled = dbUser.totpEnabled;
         }
       }
 
@@ -232,7 +238,8 @@ export const authOptions: NextAuthOptions = {
       if (token) {
         session.user.id = token.id;
         session.user.role = token.role;
-        session.user.requiresTOTP = token.requiresTOTP;
+        session.user.isLocalAccount = token.isLocalAccount;
+        session.user.totpEnabled = token.totpEnabled;
         session.user.totpVerified = token.totpVerified;
       }
       return session;

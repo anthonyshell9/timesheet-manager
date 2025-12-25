@@ -61,6 +61,7 @@ export async function GET(request: NextRequest) {
               name: true,
               code: true,
               color: true,
+              hourlyRate: true,
             },
           },
           subProject: {
