@@ -6,7 +6,7 @@ export const userCreateSchema = z.object({
   email: z.string().email('Email invalide'),
   name: z.string().min(2, 'Le nom doit contenir au moins 2 caractères'),
   role: z.enum(['ADMIN', 'VALIDATOR', 'USER']).default('USER'),
-  managerId: z.string().optional(),
+  managerId: z.string().optional().nullable(),
 });
 
 export const userUpdateSchema = z.object({

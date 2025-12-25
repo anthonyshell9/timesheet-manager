@@ -318,14 +318,14 @@ export default function AdminPage() {
                         <div className="space-y-2">
                           <Label>Manager</Label>
                           <Select
-                            value={formData.managerId}
-                            onValueChange={(v) => setFormData({ ...formData, managerId: v })}
+                            value={formData.managerId || 'none'}
+                            onValueChange={(v) => setFormData({ ...formData, managerId: v === 'none' ? '' : v })}
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Aucun manager" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">Aucun</SelectItem>
+                              <SelectItem value="none">Aucun</SelectItem>
                               {validators.map((v) => (
                                 <SelectItem key={v.id} value={v.id}>
                                   {v.name}
