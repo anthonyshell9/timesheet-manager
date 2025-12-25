@@ -7,6 +7,8 @@ export const userCreateSchema = z.object({
   name: z.string().min(2, 'Le nom doit contenir au moins 2 caractères'),
   role: z.enum(['ADMIN', 'VALIDATOR', 'USER']).default('USER'),
   managerId: z.string().optional().nullable(),
+  password: z.string().min(8, 'Le mot de passe doit contenir au moins 8 caractères').optional(),
+  authMethod: z.enum(['azure', 'local', 'both']).default('azure'),
 });
 
 export const userUpdateSchema = z.object({
@@ -14,6 +16,8 @@ export const userUpdateSchema = z.object({
   role: z.enum(['ADMIN', 'VALIDATOR', 'USER']).optional(),
   managerId: z.string().nullable().optional(),
   isActive: z.boolean().optional(),
+  password: z.string().min(8, 'Le mot de passe doit contenir au moins 8 caractères').optional(),
+  resetTOTP: z.boolean().optional(),
 });
 
 // ==================== Project Validations ====================

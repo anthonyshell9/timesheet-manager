@@ -1,20 +1,74 @@
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useState } from 'react';
 import { signIn } from 'next-auth/react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Clock, Shield, Users } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Clock, Shield, Users, Loader2 } from 'lucide-react';
 
 function SignInContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
   const error = searchParams.get('error');
 
-  const handleSignIn = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+  });
+
+  const handleAzureSignIn = () => {
+    setIsLoading(true);
     signIn('azure-ad', { callbackUrl });
   };
+
+  const handleLocalSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setLocalError(null);
+
+    try {
+      const result = await signIn('credentials', {
+        email: formData.email,
+        password: formData.password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setLocalError(result.error);
+        setIsLoading(false);
+      } else if (result?.ok) {
+        // Check if TOTP is required
+        router.push(callbackUrl);
+      }
+    } catch (err) {
+      setLocalError('Erreur de connexion. Veuillez réessayer.');
+      setIsLoading(false);
+    }
+  };
+
+  const getErrorMessage = (errorCode: string | null) => {
+    switch (errorCode) {
+      case 'AccessDenied':
+        return 'Accès refusé. Votre compte doit être créé par un administrateur avant de pouvoir vous connecter.';
+      case 'AccountDisabled':
+        return 'Votre compte a été désactivé. Contactez votre administrateur.';
+      case 'SignInError':
+        return 'Erreur lors de la connexion. Veuillez réessayer.';
+      case 'CredentialsSignin':
+        return 'Identifiants invalides.';
+      default:
+        return errorCode ? 'Une erreur s\'est produite. Veuillez réessayer.' : null;
+    }
+  };
+
+  const displayError = localError || getErrorMessage(error);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4 dark:from-gray-900 dark:to-gray-800">
@@ -33,13 +87,9 @@ function SignInContent() {
         </div>
 
         {/* Error Message */}
-        {error && (
+        {displayError && (
           <div className="rounded-md bg-destructive/10 p-4 text-center text-sm text-destructive">
-            {error === 'AccountDisabled'
-              ? 'Votre compte a été désactivé. Contactez votre administrateur.'
-              : error === 'SignInError'
-                ? 'Erreur lors de la connexion. Veuillez réessayer.'
-                : "Une erreur s'est produite. Veuillez réessayer."}
+            {displayError}
           </div>
         )}
 
@@ -48,29 +98,76 @@ function SignInContent() {
           <CardHeader className="text-center">
             <CardTitle>Connexion</CardTitle>
             <CardDescription>
-              Connectez-vous avec votre compte Microsoft professionnel
+              Choisissez votre méthode de connexion
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <Button onClick={handleSignIn} className="w-full" size="lg">
-              <svg className="mr-2 h-5 w-5" viewBox="0 0 21 21" fill="currentColor">
-                <path d="M0 0h10v10H0V0zm11 0h10v10H11V0zM0 11h10v10H0V11zm11 0h10v10H11V11z" />
-              </svg>
-              Continuer avec Microsoft
-            </Button>
+          <CardContent>
+            <Tabs defaultValue="microsoft" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="microsoft">Microsoft</TabsTrigger>
+                <TabsTrigger value="local">Email / Mot de passe</TabsTrigger>
+              </TabsList>
 
-            <div className="text-center text-xs text-muted-foreground">
-              <p>En vous connectant, vous acceptez nos</p>
-              <p>
-                <a href="#" className="underline hover:text-primary">
-                  Conditions d&apos;utilisation
-                </a>{' '}
-                et notre{' '}
-                <a href="#" className="underline hover:text-primary">
-                  Politique de confidentialité
-                </a>
-              </p>
-            </div>
+              <TabsContent value="microsoft" className="space-y-4 pt-4">
+                <Button
+                  onClick={handleAzureSignIn}
+                  className="w-full"
+                  size="lg"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  ) : (
+                    <svg className="mr-2 h-5 w-5" viewBox="0 0 21 21" fill="currentColor">
+                      <path d="M0 0h10v10H0V0zm11 0h10v10H11V0zM0 11h10v10H0V11zm11 0h10v10H11V11z" />
+                    </svg>
+                  )}
+                  Continuer avec Microsoft
+                </Button>
+                <p className="text-center text-xs text-muted-foreground">
+                  Réservé aux comptes Microsoft professionnels pré-autorisés
+                </p>
+              </TabsContent>
+
+              <TabsContent value="local" className="space-y-4 pt-4">
+                <form onSubmit={handleLocalSignIn} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="vous@exemple.com"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      required
+                      disabled={isLoading}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Mot de passe</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      required
+                      disabled={isLoading}
+                    />
+                  </div>
+                  <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+                    {isLoading ? (
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    ) : (
+                      <Shield className="mr-2 h-5 w-5" />
+                    )}
+                    Se connecter
+                  </Button>
+                </form>
+                <p className="text-center text-xs text-muted-foreground">
+                  MFA obligatoire pour les comptes locaux
+                </p>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
 
@@ -98,7 +195,7 @@ function SignInContent() {
 
         {/* Footer */}
         <p className="text-center text-xs text-muted-foreground">
-          MFA (Multi-Factor Authentication) obligatoire via Azure AD
+          Authentification sécurisée avec MFA
         </p>
       </div>
     </div>

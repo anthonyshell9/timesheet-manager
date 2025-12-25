@@ -46,6 +46,9 @@ interface User {
   lastLoginAt: string | null;
   manager: { id: string; name: string } | null;
   _count: { subordinates: number; timesheets: number };
+  hasLocalAuth?: boolean;
+  totpEnabled?: boolean;
+  authMethods?: string[];
 }
 
 const roleLabels = {
@@ -67,6 +70,8 @@ export default function AdminPage() {
     email: '',
     role: 'USER' as 'ADMIN' | 'VALIDATOR' | 'USER',
     managerId: '',
+    authMethod: 'azure' as 'azure' | 'local' | 'both',
+    password: '',
   });
 
   const fetchUsers = async () => {
@@ -98,15 +103,30 @@ export default function AdminPage() {
       const url = editingUser ? `/api/users/${editingUser.id}` : '/api/users';
       const method = editingUser ? 'PATCH' : 'POST';
 
+      const payload: Record<string, unknown> = {
+        name: formData.name,
+        role: formData.role,
+        managerId: formData.managerId || null,
+      };
+
+      if (!editingUser) {
+        // Creating new user
+        payload.email = formData.email;
+        payload.authMethod = formData.authMethod;
+        if (formData.password && (formData.authMethod === 'local' || formData.authMethod === 'both')) {
+          payload.password = formData.password;
+        }
+      } else {
+        // Updating existing user
+        if (formData.password) {
+          payload.password = formData.password;
+        }
+      }
+
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          role: formData.role,
-          managerId: formData.managerId || null,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -151,6 +171,8 @@ export default function AdminPage() {
       email: user.email,
       role: user.role,
       managerId: user.manager?.id || '',
+      authMethod: 'azure',
+      password: '',
     });
     setIsDialogOpen(true);
   };
@@ -182,7 +204,7 @@ export default function AdminPage() {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', email: '', role: 'USER', managerId: '' });
+    setFormData({ name: '', email: '', role: 'USER', managerId: '', authMethod: 'azure', password: '' });
   };
 
   const validators = users.filter((u) => u.role === 'VALIDATOR' || u.role === 'ADMIN');
@@ -334,6 +356,82 @@ export default function AdminPage() {
                             </SelectContent>
                           </Select>
                         </div>
+
+                        {/* Auth Method - only for new users */}
+                        {!editingUser && (
+                          <div className="space-y-2">
+                            <Label>Méthode d'authentification</Label>
+                            <Select
+                              value={formData.authMethod}
+                              onValueChange={(v) =>
+                                setFormData({ ...formData, authMethod: v as typeof formData.authMethod })
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="azure">Microsoft uniquement</SelectItem>
+                                <SelectItem value="local">Mot de passe uniquement</SelectItem>
+                                <SelectItem value="both">Les deux</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+
+                        {/* Password field */}
+                        {(formData.authMethod === 'local' || formData.authMethod === 'both' || editingUser) && (
+                          <div className="space-y-2">
+                            <Label>
+                              {editingUser ? 'Nouveau mot de passe (laisser vide pour ne pas changer)' : 'Mot de passe *'}
+                            </Label>
+                            <Input
+                              type="password"
+                              value={formData.password}
+                              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                              required={!editingUser && (formData.authMethod === 'local' || formData.authMethod === 'both')}
+                              minLength={8}
+                              placeholder="Minimum 8 caractères"
+                            />
+                          </div>
+                        )}
+
+                        {/* TOTP status for editing */}
+                        {editingUser && editingUser.hasLocalAuth && (
+                          <div className="space-y-2 p-3 rounded-md bg-muted">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <Label>MFA (TOTP)</Label>
+                                <p className="text-sm text-muted-foreground">
+                                  {editingUser.totpEnabled ? 'Activé' : 'Non configuré'}
+                                </p>
+                              </div>
+                              {editingUser.totpEnabled && (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={async () => {
+                                    if (confirm('Réinitialiser le MFA de cet utilisateur ?')) {
+                                      await fetch(`/api/users/${editingUser.id}`, {
+                                        method: 'PATCH',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ resetTOTP: true }),
+                                      });
+                                      toast({
+                                        title: 'MFA réinitialisé',
+                                        description: 'L\'utilisateur devra reconfigurer son MFA',
+                                      });
+                                      fetchUsers();
+                                    }
+                                  }}
+                                >
+                                  Réinitialiser MFA
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                       <DialogFooter>
                         <Button type="submit">
@@ -381,6 +479,7 @@ export default function AdminPage() {
                     <TableRow>
                       <TableHead>Utilisateur</TableHead>
                       <TableHead>Rôle</TableHead>
+                      <TableHead>Auth</TableHead>
                       <TableHead>Manager</TableHead>
                       <TableHead>Statut</TableHead>
                       <TableHead>Dernière connexion</TableHead>
@@ -398,6 +497,24 @@ export default function AdminPage() {
                           <Badge variant={roleLabels[user.role].variant}>
                             {roleLabels[user.role].label}
                           </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col gap-1">
+                            {user.authMethods?.map((method) => (
+                              <Badge key={method} variant="outline" className="text-xs">
+                                {method === 'azure' ? 'MS' : 'Local'}
+                              </Badge>
+                            ))}
+                            {user.hasLocalAuth && (
+                              <Badge
+                                variant={user.totpEnabled ? 'default' : 'secondary'}
+                                className="text-xs"
+                              >
+                                <Shield className="h-3 w-3 mr-1" />
+                                {user.totpEnabled ? 'MFA' : 'No MFA'}
+                              </Badge>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
                           {user.manager?.name || <span className="text-muted-foreground">-</span>}

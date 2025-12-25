@@ -61,6 +61,14 @@ model User {
   updatedAt     DateTime  @updatedAt
   lastLoginAt   DateTime?
 
+  // Local authentication
+  password      String?   // bcrypt hashed password
+
+  // TOTP MFA
+  totpSecret    String?   // Encrypted TOTP secret
+  totpEnabled   Boolean   @default(false)
+  totpVerifiedAt DateTime?
+
   // Relations
   managerId     String?
   manager       User?     @relation("ManagerSubordinates", fields: [managerId], references: [id])

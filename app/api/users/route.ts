@@ -11,6 +11,7 @@ import {
 } from '@/lib/api-utils';
 import { userCreateSchema, paginationSchema } from '@/lib/validations';
 import { logCrudOperation } from '@/lib/audit';
+import { hashPassword } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
@@ -47,6 +48,9 @@ export async function GET(request: NextRequest) {
           isActive: true,
           createdAt: true,
           lastLoginAt: true,
+          password: true, // To check auth method
+          totpEnabled: true,
+          azureAdId: true,
           manager: {
             select: {
               id: true,
@@ -66,7 +70,17 @@ export async function GET(request: NextRequest) {
       prisma.user.count({ where }),
     ]);
 
-    return successResponse(users, createPaginationMeta(page, limit, total));
+    // Transform users to include auth method info without exposing password
+    const transformedUsers = users.map(({ password, ...user }) => ({
+      ...user,
+      hasLocalAuth: !!password,
+      authMethods: [
+        ...(password ? ['local'] : []),
+        ...(user.azureAdId ? ['azure'] : []),
+      ],
+    }));
+
+    return successResponse(transformedUsers, createPaginationMeta(page, limit, total));
   } catch (error) {
     return serverErrorResponse(error);
   }
@@ -80,12 +94,19 @@ export async function POST(request: NextRequest) {
     const { data, error: validationError } = await validateRequest(request, userCreateSchema);
     if (validationError) return validationError;
 
+    // Hash password if provided
+    let hashedPassword: string | undefined;
+    if (data.password && (data.authMethod === 'local' || data.authMethod === 'both')) {
+      hashedPassword = await hashPassword(data.password);
+    }
+
     const user = await prisma.user.create({
       data: {
-        email: data.email,
+        email: data.email.toLowerCase(),
         name: data.name,
         role: data.role,
         managerId: data.managerId,
+        password: hashedPassword,
       },
       select: {
         id: true,
@@ -98,7 +119,12 @@ export async function POST(request: NextRequest) {
     });
 
     await logCrudOperation('CREATE', 'User', user.id, {
-      newValues: { email: data.email, name: data.name, role: data.role },
+      newValues: {
+        email: data.email,
+        name: data.name,
+        role: data.role,
+        authMethod: data.authMethod,
+      },
     });
 
     return createdResponse(user);
