@@ -125,12 +125,16 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Check if timesheet is locked
+    // If timesheet is locked, reopen it automatically
     if (['APPROVED', 'REJECTED'].includes(timesheet.status)) {
-      return errorResponse(
-        'Impossible de modifier une feuille de temps verrouillée',
-        403
-      );
+      timesheet = await prisma.timeSheet.update({
+        where: { id: timesheet.id },
+        data: {
+          status: 'REOPENED',
+          lockedAt: null,
+          lockedById: null,
+        },
+      });
     }
 
     // Create the time entry

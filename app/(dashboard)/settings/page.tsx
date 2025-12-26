@@ -10,7 +10,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
-import { User, Shield, Key, Loader2, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { User, Shield, Key, Loader2, CheckCircle, XCircle, AlertCircle, Settings } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 export default function SettingsPage() {
   const { data: session, status, update } = useSession();
@@ -30,6 +37,23 @@ export default function SettingsPage() {
     newPassword: '',
     confirmPassword: '',
   });
+
+  // Preferences
+  const [timeFormat, setTimeFormat] = useState<'24h' | '12h'>('24h');
+
+  // Load preferences from localStorage
+  useEffect(() => {
+    const savedFormat = localStorage.getItem('timeFormat') as '24h' | '12h';
+    if (savedFormat) {
+      setTimeFormat(savedFormat);
+    }
+  }, []);
+
+  const handleTimeFormatChange = (format: '24h' | '12h') => {
+    setTimeFormat(format);
+    localStorage.setItem('timeFormat', format);
+    toast({ title: 'Préférence enregistrée' });
+  };
 
   if (status === 'loading') {
     return (
@@ -184,6 +208,10 @@ export default function SettingsPage() {
             <User className="h-4 w-4" />
             Profil
           </TabsTrigger>
+          <TabsTrigger value="preferences" className="gap-2">
+            <Settings className="h-4 w-4" />
+            Préférences
+          </TabsTrigger>
           <TabsTrigger value="security" className="gap-2">
             <Shield className="h-4 w-4" />
             Sécurité
@@ -222,6 +250,34 @@ export default function SettingsPage() {
                     )}
                   </div>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="preferences" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Affichage</CardTitle>
+              <CardDescription>Personnalisez l'affichage de l'application</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Format de l'heure</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Choisissez entre le format 24 heures ou AM/PM
+                  </p>
+                </div>
+                <Select value={timeFormat} onValueChange={(val) => handleTimeFormatChange(val as '24h' | '12h')}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="24h">24 heures</SelectItem>
+                    <SelectItem value="12h">AM / PM</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>
