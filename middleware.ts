@@ -20,6 +20,14 @@ export default withAuth(
       return NextResponse.next();
     }
 
+    // Return JSON 401 for unauthenticated API requests
+    if (isApiRoute && !token && !isTOTPApiRoute) {
+      return NextResponse.json(
+        { success: false, error: 'Non authentifié' },
+        { status: 401 }
+      );
+    }
+
     // If user is authenticated
     if (token) {
       const isLocalAccount = token.isLocalAccount;
@@ -119,11 +127,17 @@ export default withAuth(
         const pathname = req.nextUrl.pathname;
         const isAuthPage = pathname.startsWith('/auth');
         const isPublicPage = pathname === '/';
+        const isApiRoute = pathname.startsWith('/api');
         const isPublicApiRoute =
           pathname === '/api/health' || pathname === '/api/docs';
 
         // Allow public pages and auth pages without authentication
         if (isAuthPage || isPublicPage || isPublicApiRoute) {
+          return true;
+        }
+
+        // Allow API routes to pass through to middleware function (we handle auth there with JSON response)
+        if (isApiRoute) {
           return true;
         }
 
