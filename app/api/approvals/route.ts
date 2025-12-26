@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     // Build where clause based on role:
     // - ADMIN: sees all approvals
     // - VALIDATOR/MANAGER: sees approvals for their subordinates OR where they are the validator
-    let where: {
+    const where: {
       status?: 'PENDING' | 'APPROVED' | 'REJECTED';
       OR?: Array<{ validatorId?: string; timesheet?: { user: { managerId: string } } }>;
     } = {};
