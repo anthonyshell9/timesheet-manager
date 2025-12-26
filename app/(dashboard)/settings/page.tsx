@@ -166,9 +166,9 @@ export default function SettingsPage() {
   };
 
   const roleLabels = {
-    ADMIN: 'Administrateur',
-    VALIDATOR: 'Validateur',
-    USER: 'Utilisateur',
+    ADMIN: 'Admin',
+    VALIDATOR: 'Manager',
+    USER: 'Employé',
   };
 
   return (

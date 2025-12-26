@@ -20,13 +20,25 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const status = searchParams.get('status');
 
-    const where =
-      session.user.role === 'ADMIN'
-        ? { ...(status && { status: status as 'PENDING' | 'APPROVED' | 'REJECTED' }) }
-        : {
-            validatorId: session.user.id,
-            ...(status && { status: status as 'PENDING' | 'APPROVED' | 'REJECTED' }),
-          };
+    // Build where clause based on role:
+    // - ADMIN: sees all approvals
+    // - VALIDATOR/MANAGER: sees approvals for their subordinates OR where they are the validator
+    let where: {
+      status?: 'PENDING' | 'APPROVED' | 'REJECTED';
+      OR?: Array<{ validatorId?: string; timesheet?: { user: { managerId: string } } }>;
+    } = {};
+
+    if (status) {
+      where.status = status as 'PENDING' | 'APPROVED' | 'REJECTED';
+    }
+
+    if (session.user.role !== 'ADMIN') {
+      // Manager sees: approvals where they are validator OR timesheets from their subordinates
+      where.OR = [
+        { validatorId: session.user.id },
+        { timesheet: { user: { managerId: session.user.id } } },
+      ];
+    }
 
     const approvals = await prisma.approval.findMany({
       where,
@@ -38,6 +50,13 @@ export async function GET(request: NextRequest) {
                 id: true,
                 name: true,
                 email: true,
+                managerId: true,
+              },
+            },
+            timeEntries: {
+              select: {
+                id: true,
+                duration: true,
               },
             },
           },

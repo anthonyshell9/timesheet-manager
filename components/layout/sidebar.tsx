@@ -33,7 +33,7 @@ import {
   Moon,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const navigation = [
   { name: 'Tableau de bord', href: '/dashboard', icon: LayoutDashboard },
@@ -41,7 +41,7 @@ const navigation = [
   { name: 'Mes feuilles', href: '/timesheets', icon: FileText },
   { name: 'Calendrier', href: '/calendar', icon: Calendar },
   { name: 'Projets', href: '/projects', icon: FolderKanban },
-  { name: 'Validations', href: '/validations', icon: CheckSquare, roles: ['ADMIN', 'VALIDATOR'] },
+  { name: 'À valider', href: '/validations', icon: CheckSquare, roles: ['ADMIN', 'VALIDATOR'] },
   { name: 'Rapports', href: '/reports', icon: BarChart3 },
   { name: 'Administration', href: '/admin', icon: Settings, roles: ['ADMIN'] },
 ];
@@ -51,8 +51,44 @@ export function Sidebar() {
   const { data: session } = useSession();
   const { theme, setTheme } = useTheme();
   const [collapsed, setCollapsed] = useState(false);
+  const [badges, setBadges] = useState<{ validations: number; drafts: number }>({
+    validations: 0,
+    drafts: 0,
+  });
 
   const userRole = session?.user?.role;
+
+  // Fetch badge counts
+  useEffect(() => {
+    const fetchBadges = async () => {
+      try {
+        // Fetch pending validations for managers/admins
+        if (userRole === 'VALIDATOR' || userRole === 'ADMIN') {
+          const validationsRes = await fetch('/api/approvals?status=PENDING');
+          const validationsData = await validationsRes.json();
+          if (validationsData.success) {
+            setBadges((prev) => ({ ...prev, validations: validationsData.data.length }));
+          }
+        }
+
+        // Fetch draft timesheets for all users
+        const timesheetsRes = await fetch('/api/timesheets?status=DRAFT');
+        const timesheetsData = await timesheetsRes.json();
+        if (timesheetsData.success) {
+          setBadges((prev) => ({ ...prev, drafts: timesheetsData.data.length }));
+        }
+      } catch (error) {
+        console.error('Failed to fetch badges:', error);
+      }
+    };
+
+    if (session?.user) {
+      fetchBadges();
+      // Refresh every 60 seconds
+      const interval = setInterval(fetchBadges, 60000);
+      return () => clearInterval(interval);
+    }
+  }, [session?.user, userRole]);
 
   const filteredNavigation = navigation.filter(
     (item) => !item.roles || (userRole && item.roles.includes(userRole))
@@ -99,12 +135,17 @@ export function Sidebar() {
         <nav className="space-y-1">
           {filteredNavigation.map((item) => {
             const isActive = pathname.startsWith(item.href);
+            // Determine badge count for this item
+            let badgeCount = 0;
+            if (item.href === '/validations') badgeCount = badges.validations;
+            if (item.href === '/timesheets') badgeCount = badges.drafts;
+
             return (
               <Link
                 key={item.name}
                 href={item.href}
                 className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+                  'relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
                   isActive
                     ? 'bg-primary text-primary-foreground'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground',
@@ -113,7 +154,22 @@ export function Sidebar() {
                 title={collapsed ? item.name : undefined}
               >
                 <item.icon className="h-5 w-5 flex-shrink-0" />
-                {!collapsed && <span>{item.name}</span>}
+                {!collapsed && (
+                  <span className="flex-1">{item.name}</span>
+                )}
+                {!collapsed && badgeCount > 0 && (
+                  <Badge
+                    variant={isActive ? 'secondary' : 'destructive'}
+                    className="h-5 min-w-5 justify-center px-1.5 text-xs"
+                  >
+                    {badgeCount}
+                  </Badge>
+                )}
+                {collapsed && badgeCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] text-destructive-foreground">
+                    {badgeCount > 9 ? '9+' : badgeCount}
+                  </span>
+                )}
               </Link>
             );
           })}
@@ -164,8 +220,8 @@ export function Sidebar() {
                     {userRole === 'ADMIN'
                       ? 'Admin'
                       : userRole === 'VALIDATOR'
-                        ? 'Validateur'
-                        : 'Utilisateur'}
+                        ? 'Manager'
+                        : 'Employé'}
                   </Badge>
                 </div>
               )}

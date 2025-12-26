@@ -79,9 +79,9 @@ interface UserGroup {
 }
 
 const roleLabels = {
-  ADMIN: { label: 'Administrateur', variant: 'destructive' as const },
-  VALIDATOR: { label: 'Validateur', variant: 'default' as const },
-  USER: { label: 'Utilisateur', variant: 'secondary' as const },
+  ADMIN: { label: 'Admin', variant: 'destructive' as const },
+  VALIDATOR: { label: 'Manager', variant: 'default' as const },
+  USER: { label: 'Employé', variant: 'secondary' as const },
 };
 
 export default function AdminPage() {
