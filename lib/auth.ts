@@ -16,6 +16,7 @@ declare module 'next-auth' {
       isLocalAccount?: boolean;
       totpEnabled?: boolean;
       totpVerified?: boolean;
+      requiresTOTP?: boolean;
     };
   }
 
@@ -23,6 +24,7 @@ declare module 'next-auth' {
     role: Role;
     isLocalAccount?: boolean;
     totpEnabled?: boolean;
+    requiresTOTP?: boolean;
   }
 }
 
@@ -160,7 +162,7 @@ export const authOptions: NextAuthOptions = {
             resourceId: existingUser.id,
             details: {
               provider: 'azure-ad',
-              email: user.email,
+              email: user.email ?? undefined,
             },
           });
 
@@ -181,7 +183,7 @@ export const authOptions: NextAuthOptions = {
             resourceId: user.id,
             details: {
               provider: 'credentials',
-              email: user.email,
+              email: user.email ?? undefined,
             },
           });
           return true;
@@ -281,7 +283,7 @@ async function logAuditAction({
   userId?: string;
   resource: string;
   resourceId: string;
-  details: Record<string, unknown>;
+  details: Record<string, string | undefined>;
 }) {
   try {
     await prisma.auditLog.create({
@@ -290,7 +292,7 @@ async function logAuditAction({
         userId,
         resource,
         resourceId,
-        details,
+        details: details as object,
       },
     });
   } catch (error) {

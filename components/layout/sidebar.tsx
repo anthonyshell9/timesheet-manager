@@ -88,6 +88,7 @@ export function Sidebar() {
       const interval = setInterval(fetchBadges, 60000);
       return () => clearInterval(interval);
     }
+    return undefined;
   }, [session?.user, userRole]);
 
   const filteredNavigation = navigation.filter(

@@ -115,13 +115,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // Calculate totals by project
     const totalsByProject: Record<string, { name: string; minutes: number }> = {};
     timesheet.timeEntries.forEach((entry) => {
-      if (!totalsByProject[entry.projectId]) {
-        totalsByProject[entry.projectId] = {
+      let projectTotal = totalsByProject[entry.projectId];
+      if (!projectTotal) {
+        projectTotal = {
           name: entry.project.name,
           minutes: 0,
         };
+        totalsByProject[entry.projectId] = projectTotal;
       }
-      totalsByProject[entry.projectId].minutes += entry.duration;
+      projectTotal.minutes += entry.duration;
     });
 
     return successResponse({

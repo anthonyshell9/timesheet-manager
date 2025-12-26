@@ -40,7 +40,7 @@ const errorMessages: Record<string, { title: string; description: string }> = {
 function ErrorContent() {
   const searchParams = useSearchParams();
   const error = searchParams.get('error') || 'Default';
-  const errorInfo = errorMessages[error] || errorMessages.Default;
+  const errorInfo = errorMessages[error] ?? errorMessages['Default']!;
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-red-50 to-orange-100 p-4 dark:from-gray-900 dark:to-gray-800">

@@ -1,8 +1,23 @@
 import { NextResponse } from 'next/server';
 import { ZodError, ZodSchema } from 'zod';
-import { getServerSession } from 'next-auth';
+import { getServerSession, Session } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { Role } from '@prisma/client';
+
+// Extended session type with our custom user properties
+export interface ExtendedSession extends Session {
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    image?: string;
+    role: Role;
+    isLocalAccount?: boolean;
+    totpEnabled?: boolean;
+    totpVerified?: boolean;
+    requiresTOTP?: boolean;
+  };
+}
 
 // API Response Types
 export interface ApiResponse<T = unknown> {
@@ -130,10 +145,10 @@ export function validateQueryParams<T>(
 
 // Auth helpers
 export async function requireAuth(): Promise<
-  | { session: NonNullable<Awaited<ReturnType<typeof getServerSession>>>; error: null }
+  | { session: ExtendedSession; error: null }
   | { session: null; error: NextResponse }
 > {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(authOptions) as ExtendedSession | null;
 
   if (!session?.user) {
     return { session: null, error: unauthorizedResponse('Session non valide') };
@@ -145,7 +160,7 @@ export async function requireAuth(): Promise<
 export async function requireRole(
   allowedRoles: Role[]
 ): Promise<
-  | { session: NonNullable<Awaited<ReturnType<typeof getServerSession>>>; error: null }
+  | { session: ExtendedSession; error: null }
   | { session: null; error: NextResponse }
 > {
   const { session, error } = await requireAuth();

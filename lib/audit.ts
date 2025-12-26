@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { AuditAction } from '@prisma/client';
+import { AuditAction, Prisma } from '@prisma/client';
 import crypto from 'crypto';
 import { headers } from 'next/headers';
 import { getServerSession } from 'next-auth';
@@ -9,16 +9,16 @@ interface AuditLogInput {
   action: AuditAction;
   resource: string;
   resourceId: string;
-  details?: Record<string, unknown>;
-  oldValues?: Record<string, unknown>;
-  newValues?: Record<string, unknown>;
+  details?: Prisma.InputJsonValue;
+  oldValues?: Prisma.InputJsonValue;
+  newValues?: Prisma.InputJsonValue;
   userId?: string;
 }
 
 /**
  * Create an audit log entry with integrity hash
  */
-export async function createAuditLog(input: AuditLogInput) {
+export async function createAuditLog(input: AuditLogInput): Promise<void> {
   const headersList = await headers();
   const session = await getServerSession(authOptions);
 
@@ -39,7 +39,7 @@ export async function createAuditLog(input: AuditLogInput) {
   const signature = crypto.createHash('sha256').update(signatureData).digest('hex');
 
   try {
-    const auditLog = await prisma.auditLog.create({
+    await prisma.auditLog.create({
       data: {
         action: input.action,
         resource: input.resource,
@@ -53,8 +53,6 @@ export async function createAuditLog(input: AuditLogInput) {
         signature,
       },
     });
-
-    return auditLog;
   } catch (error) {
     console.error('Failed to create audit log:', error);
     // Don't throw - audit logging should not break the main operation
@@ -119,11 +117,11 @@ export async function logCrudOperation(
   resource: string,
   resourceId: string,
   options?: {
-    oldValues?: Record<string, unknown>;
-    newValues?: Record<string, unknown>;
-    details?: Record<string, unknown>;
+    oldValues?: Prisma.InputJsonValue;
+    newValues?: Prisma.InputJsonValue;
+    details?: Prisma.InputJsonValue;
   }
-) {
+): Promise<void> {
   return createAuditLog({
     action,
     resource,
@@ -140,8 +138,8 @@ export async function logCrudOperation(
 export async function logWorkflowAction(
   action: 'SUBMIT' | 'APPROVE' | 'REJECT' | 'REOPEN',
   resourceId: string,
-  details?: Record<string, unknown>
-) {
+  details?: Prisma.InputJsonValue
+): Promise<void> {
   return createAuditLog({
     action,
     resource: 'TimeSheet',
@@ -155,8 +153,8 @@ export async function logWorkflowAction(
  */
 export async function logExportAction(
   format: string,
-  details: Record<string, unknown>
-) {
+  details: Prisma.InputJsonObject
+): Promise<void> {
   return createAuditLog({
     action: 'EXPORT',
     resource: 'Report',
@@ -164,6 +162,6 @@ export async function logExportAction(
     details: {
       format,
       ...details,
-    },
+    } as Prisma.InputJsonValue,
   });
 }

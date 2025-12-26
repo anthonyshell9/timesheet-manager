@@ -89,21 +89,23 @@ export async function GET(request: NextRequest) {
         totalBillableHours += hours;
       }
 
-      if (!projectMap[entry.project.id]) {
-        projectMap[entry.project.id] = {
+      let project = projectMap[entry.project.id];
+      if (!project) {
+        project = {
           projectName: entry.project.name,
           projectCode: entry.project.code,
           hours: 0,
           billableHours: 0,
           value: 0,
         };
+        projectMap[entry.project.id] = project;
       }
 
-      projectMap[entry.project.id].hours += hours;
+      project.hours += hours;
       if (entry.isBillable) {
-        projectMap[entry.project.id].billableHours += hours;
+        project.billableHours += hours;
         const rate = entry.project.hourlyRate ? Number(entry.project.hourlyRate) : 150;
-        projectMap[entry.project.id].value += hours * rate;
+        project.value += hours * rate;
       }
     });
 

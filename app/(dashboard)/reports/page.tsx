@@ -94,8 +94,9 @@ export default function ReportsPage() {
               totalBillableHours += hours;
             }
 
-            if (!projectMap[entry.project.id]) {
-              projectMap[entry.project.id] = {
+            let project = projectMap[entry.project.id];
+            if (!project) {
+              project = {
                 projectId: entry.project.id,
                 projectName: entry.project.name,
                 projectCode: entry.project.code,
@@ -104,14 +105,15 @@ export default function ReportsPage() {
                 billableHours: 0,
                 value: 0,
               };
+              projectMap[entry.project.id] = project;
             }
 
-            projectMap[entry.project.id].hours += hours;
+            project.hours += hours;
             if (entry.isBillable) {
-              projectMap[entry.project.id].billableHours += hours;
+              project.billableHours += hours;
               // Assume 150 EUR/hour if no rate specified
               const rate = entry.project.hourlyRate || 150;
-              projectMap[entry.project.id].value += hours * rate;
+              project.value += hours * rate;
             }
           });
 
@@ -157,7 +159,7 @@ export default function ReportsPage() {
       let filename = `rapport.${exportFormat === 'excel' ? 'xlsx' : exportFormat}`;
       if (contentDisposition) {
         const match = contentDisposition.match(/filename="(.+)"/);
-        if (match) {
+        if (match?.[1]) {
           filename = match[1];
         }
       }

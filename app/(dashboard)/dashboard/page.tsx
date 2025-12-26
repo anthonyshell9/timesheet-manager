@@ -68,15 +68,17 @@ export default function DashboardPage() {
           // Group by project
           const projectHours: Record<string, { name: string; code: string; color: string; minutes: number }> = {};
           entriesData.data.forEach((entry: { project: { id: string; name: string; code: string; color: string }; duration: number }) => {
-            if (!projectHours[entry.project.id]) {
+            const existing = projectHours[entry.project.id];
+            if (!existing) {
               projectHours[entry.project.id] = {
                 name: entry.project.name,
                 code: entry.project.code,
                 color: entry.project.color,
-                minutes: 0,
+                minutes: entry.duration,
               };
+            } else {
+              existing.minutes += entry.duration;
             }
-            projectHours[entry.project.id].minutes += entry.duration;
           });
 
           const recentProjects = Object.entries(projectHours)
