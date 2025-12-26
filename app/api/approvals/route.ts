@@ -69,12 +69,12 @@ export async function POST(request: NextRequest) {
     );
     if (validationError) return validationError;
 
-    // Find the approval record
+    // Find the approval record - ADMIN can approve any, others only their own
     const approval = await prisma.approval.findFirst({
       where: {
         timesheetId: data.timesheetId,
-        validatorId: session.user.id,
         status: 'PENDING',
+        ...(session.user.role !== 'ADMIN' && { validatorId: session.user.id }),
       },
       include: {
         timesheet: {
@@ -141,10 +141,14 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    await logWorkflowAction(data.status, data.timesheetId, {
-      validatorId: session.user.id,
-      comment: data.comment,
-    });
+    await logWorkflowAction(
+      data.status === 'APPROVED' ? 'APPROVE' : 'REJECT',
+      data.timesheetId,
+      {
+        validatorId: session.user.id,
+        comment: data.comment,
+      }
+    );
 
     return successResponse(updated);
   } catch (error) {
