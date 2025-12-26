@@ -72,6 +72,17 @@ export async function GET(request: NextRequest) {
               },
             },
           },
+          groups: {
+            select: {
+              group: {
+                select: {
+                  id: true,
+                  name: true,
+                  color: true,
+                },
+              },
+            },
+          },
           _count: {
             select: {
               timeEntries: true,

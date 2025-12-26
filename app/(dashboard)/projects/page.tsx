@@ -16,9 +16,20 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/components/ui/use-toast';
 import {
   FolderKanban,
@@ -29,7 +40,27 @@ import {
   Users,
   Edit,
   Trash2,
+  Settings,
+  Layers,
+  UsersRound,
 } from 'lucide-react';
+
+interface SubProject {
+  id: string;
+  name: string;
+  code: string | null;
+  description: string | null;
+  isActive: boolean;
+  spentHours?: number;
+  _count?: { timeEntries: number };
+}
+
+interface Group {
+  id: string;
+  name: string;
+  color: string | null;
+  members?: Array<{ user: { id: string; name: string; email: string } }>;
+}
 
 interface Project {
   id: string;
@@ -42,8 +73,9 @@ interface Project {
   isBillable: boolean;
   color: string;
   spentHours: number;
-  subProjects: Array<{ id: string; name: string; code: string | null }>;
+  subProjects: SubProject[];
   validators: Array<{ user: { id: string; name: string; email: string } }>;
+  groups: Array<{ group: Group }>;
   _count: { timeEntries: number };
 }
 
@@ -55,6 +87,22 @@ export default function ProjectsPage() {
   const [search, setSearch] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+
+  // Project detail sheet
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [projectSubProjects, setProjectSubProjects] = useState<SubProject[]>([]);
+  const [allGroups, setAllGroups] = useState<Group[]>([]);
+  const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
+
+  // Sub-project form
+  const [isSubProjectDialogOpen, setIsSubProjectDialogOpen] = useState(false);
+  const [editingSubProject, setEditingSubProject] = useState<SubProject | null>(null);
+  const [subProjectFormData, setSubProjectFormData] = useState({
+    name: '',
+    code: '',
+    description: '',
+  });
 
   // Form state
   const [formData, setFormData] = useState({
@@ -85,7 +133,140 @@ export default function ProjectsPage() {
 
   useEffect(() => {
     fetchProjects();
+    fetchAllGroups();
   }, []);
+
+  const fetchAllGroups = async () => {
+    try {
+      const res = await fetch('/api/groups');
+      const data = await res.json();
+      if (data.success) {
+        setAllGroups(data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch groups:', error);
+    }
+  };
+
+  const fetchProjectSubProjects = async (projectId: string) => {
+    try {
+      const res = await fetch(`/api/projects/${projectId}/subprojects`);
+      const data = await res.json();
+      if (data.success) {
+        setProjectSubProjects(data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch sub-projects:', error);
+    }
+  };
+
+  const fetchProjectGroups = async (projectId: string) => {
+    try {
+      const res = await fetch(`/api/projects/${projectId}/groups`);
+      const data = await res.json();
+      if (data.success) {
+        setSelectedGroupIds(data.data.map((g: Group) => g.id));
+      }
+    } catch (error) {
+      console.error('Failed to fetch project groups:', error);
+    }
+  };
+
+  const openProjectSheet = async (project: Project) => {
+    setSelectedProject(project);
+    setIsSheetOpen(true);
+    await Promise.all([
+      fetchProjectSubProjects(project.id),
+      fetchProjectGroups(project.id),
+    ]);
+  };
+
+  const handleSaveGroups = async () => {
+    if (!selectedProject) return;
+    try {
+      const res = await fetch(`/api/projects/${selectedProject.id}/groups`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groupIds: selectedGroupIds }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast({ title: 'Succès', description: 'Groupes mis à jour' });
+        fetchProjects();
+      } else {
+        toast({ title: 'Erreur', description: data.error, variant: 'destructive' });
+      }
+    } catch (error) {
+      toast({ title: 'Erreur', description: 'Erreur lors de la sauvegarde', variant: 'destructive' });
+    }
+  };
+
+  const handleCreateSubProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedProject) return;
+
+    try {
+      const url = editingSubProject
+        ? `/api/projects/${selectedProject.id}/subprojects/${editingSubProject.id}`
+        : `/api/projects/${selectedProject.id}/subprojects`;
+      const method = editingSubProject ? 'PATCH' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(subProjectFormData),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        toast({
+          title: 'Succès',
+          description: editingSubProject ? 'Sous-projet modifié' : 'Sous-projet créé',
+        });
+        setIsSubProjectDialogOpen(false);
+        setEditingSubProject(null);
+        setSubProjectFormData({ name: '', code: '', description: '' });
+        fetchProjectSubProjects(selectedProject.id);
+        fetchProjects();
+      } else {
+        toast({ title: 'Erreur', description: data.error, variant: 'destructive' });
+      }
+    } catch (error) {
+      toast({ title: 'Erreur', description: 'Erreur lors de la sauvegarde', variant: 'destructive' });
+    }
+  };
+
+  const handleDeleteSubProject = async (subProjectId: string) => {
+    if (!selectedProject) return;
+    if (!confirm('Supprimer ce sous-projet ?')) return;
+
+    try {
+      const res = await fetch(
+        `/api/projects/${selectedProject.id}/subprojects/${subProjectId}`,
+        { method: 'DELETE' }
+      );
+      const data = await res.json();
+      if (data.success) {
+        toast({ title: 'Succès', description: data.data.message });
+        fetchProjectSubProjects(selectedProject.id);
+        fetchProjects();
+      } else {
+        toast({ title: 'Erreur', description: data.error, variant: 'destructive' });
+      }
+    } catch (error) {
+      toast({ title: 'Erreur', description: 'Erreur lors de la suppression', variant: 'destructive' });
+    }
+  };
+
+  const openEditSubProject = (sp: SubProject) => {
+    setEditingSubProject(sp);
+    setSubProjectFormData({
+      name: sp.name,
+      code: sp.code || '',
+      description: sp.description || '',
+    });
+    setIsSubProjectDialogOpen(true);
+  };
 
   const filteredProjects = projects.filter(
     (p) =>
@@ -372,14 +553,50 @@ export default function ProjectsPage() {
 
                   <div className="flex items-center justify-between text-sm">
                     <span className="flex items-center gap-1 text-muted-foreground">
-                      <Users className="h-4 w-4" />
+                      <Layers className="h-4 w-4" />
                       Sous-projets
                     </span>
                     <span>{project.subProjects.length}</span>
                   </div>
 
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      <UsersRound className="h-4 w-4" />
+                      Groupes
+                    </span>
+                    <div className="flex gap-1 flex-wrap justify-end">
+                      {project.groups.length > 0 ? (
+                        project.groups.slice(0, 2).map(({ group }) => (
+                          <Badge
+                            key={group.id}
+                            variant="outline"
+                            className="text-xs"
+                            style={{ borderColor: group.color || undefined }}
+                          >
+                            {group.name}
+                          </Badge>
+                        ))
+                      ) : (
+                        <span className="text-muted-foreground">Aucun</span>
+                      )}
+                      {project.groups.length > 2 && (
+                        <Badge variant="secondary" className="text-xs">
+                          +{project.groups.length - 2}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+
                   {isAdmin && (
                     <div className="flex justify-end gap-2 pt-2 border-t">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openProjectSheet(project)}
+                        title="Gérer sous-projets et groupes"
+                      >
+                        <Settings className="h-4 w-4" />
+                      </Button>
                       <Button variant="ghost" size="sm" onClick={() => handleEdit(project)}>
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -391,6 +608,221 @@ export default function ProjectsPage() {
           })}
         </div>
       )}
+
+      {/* Project Detail Sheet */}
+      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+        <SheetContent className="sm:max-w-[600px]">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <div
+                className="h-4 w-4 rounded"
+                style={{ backgroundColor: selectedProject?.color }}
+              />
+              {selectedProject?.name}
+            </SheetTitle>
+            <SheetDescription>{selectedProject?.code}</SheetDescription>
+          </SheetHeader>
+
+          <Tabs defaultValue="subprojects" className="mt-6">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="subprojects" className="gap-2">
+                <Layers className="h-4 w-4" />
+                Sous-projets
+              </TabsTrigger>
+              <TabsTrigger value="groups" className="gap-2">
+                <UsersRound className="h-4 w-4" />
+                Groupes
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="subprojects" className="mt-4 space-y-4">
+              <div className="flex justify-between items-center">
+                <p className="text-sm text-muted-foreground">
+                  Gérez les sous-projets de ce projet
+                </p>
+                <Dialog open={isSubProjectDialogOpen} onOpenChange={setIsSubProjectDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setEditingSubProject(null);
+                        setSubProjectFormData({ name: '', code: '', description: '' });
+                      }}
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Ajouter
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <form onSubmit={handleCreateSubProject}>
+                      <DialogHeader>
+                        <DialogTitle>
+                          {editingSubProject ? 'Modifier le sous-projet' : 'Nouveau sous-projet'}
+                        </DialogTitle>
+                      </DialogHeader>
+                      <div className="grid gap-4 py-4">
+                        <div className="space-y-2">
+                          <Label>Nom *</Label>
+                          <Input
+                            value={subProjectFormData.name}
+                            onChange={(e) =>
+                              setSubProjectFormData({ ...subProjectFormData, name: e.target.value })
+                            }
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Code</Label>
+                          <Input
+                            value={subProjectFormData.code}
+                            onChange={(e) =>
+                              setSubProjectFormData({ ...subProjectFormData, code: e.target.value })
+                            }
+                            placeholder="Optionnel"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Description</Label>
+                          <Textarea
+                            value={subProjectFormData.description}
+                            onChange={(e) =>
+                              setSubProjectFormData({
+                                ...subProjectFormData,
+                                description: e.target.value,
+                              })
+                            }
+                            rows={2}
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button type="submit">
+                          {editingSubProject ? 'Modifier' : 'Créer'}
+                        </Button>
+                      </DialogFooter>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              <ScrollArea className="h-[400px]">
+                {projectSubProjects.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Aucun sous-projet
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {projectSubProjects.map((sp) => (
+                      <div
+                        key={sp.id}
+                        className="flex items-center justify-between p-3 rounded-lg border"
+                      >
+                        <div>
+                          <div className="font-medium flex items-center gap-2">
+                            {sp.name}
+                            {!sp.isActive && (
+                              <Badge variant="secondary" className="text-xs">
+                                Inactif
+                              </Badge>
+                            )}
+                          </div>
+                          {sp.code && (
+                            <div className="text-sm text-muted-foreground font-mono">
+                              {sp.code}
+                            </div>
+                          )}
+                          {sp.spentHours !== undefined && (
+                            <div className="text-sm text-muted-foreground">
+                              {sp.spentHours.toFixed(1)}h utilisées
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openEditSubProject(sp)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteSubProject(sp.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="groups" className="mt-4 space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Sélectionnez les groupes qui peuvent utiliser ce projet
+              </p>
+
+              <ScrollArea className="h-[350px]">
+                {allGroups.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Aucun groupe disponible
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {allGroups.map((group) => (
+                      <div
+                        key={group.id}
+                        className="flex items-center space-x-3 p-3 rounded-lg border"
+                      >
+                        <Checkbox
+                          id={`group-${group.id}`}
+                          checked={selectedGroupIds.includes(group.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedGroupIds([...selectedGroupIds, group.id]);
+                            } else {
+                              setSelectedGroupIds(
+                                selectedGroupIds.filter((id) => id !== group.id)
+                              );
+                            }
+                          }}
+                        />
+                        <div className="flex-1">
+                          <label
+                            htmlFor={`group-${group.id}`}
+                            className="font-medium cursor-pointer flex items-center gap-2"
+                          >
+                            <div
+                              className="h-3 w-3 rounded-full"
+                              style={{ backgroundColor: group.color || '#6B7280' }}
+                            />
+                            {group.name}
+                          </label>
+                          {group.members && group.members.length > 0 && (
+                            <div className="text-sm text-muted-foreground">
+                              {group.members.length} membre
+                              {group.members.length > 1 ? 's' : ''}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </ScrollArea>
+
+              <Separator />
+
+              <div className="flex justify-end">
+                <Button onClick={handleSaveGroups}>Enregistrer les groupes</Button>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

@@ -40,6 +40,28 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             },
           },
         },
+        groups: {
+          include: {
+            group: {
+              select: {
+                id: true,
+                name: true,
+                color: true,
+                members: {
+                  select: {
+                    user: {
+                      select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
         _count: {
           select: {
             timeEntries: true,

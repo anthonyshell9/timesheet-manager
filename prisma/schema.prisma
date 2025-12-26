@@ -169,6 +169,7 @@ model Project {
   timeEntries   TimeEntry[]
   validators    ProjectValidator[]
   members       ProjectMember[]
+  groups        ProjectGroup[]
 
   @@index([code])
   @@index([isActive])
@@ -381,6 +382,7 @@ model UserGroup {
 
   // Relations
   members     UserGroupMember[]
+  projects    ProjectGroup[]
 
   @@index([name])
   @@index([isActive])
@@ -399,4 +401,20 @@ model UserGroupMember {
   @@unique([groupId, userId])
   @@index([groupId])
   @@index([userId])
+}
+
+// Project-Group assignment - which groups can work on which projects
+model ProjectGroup {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  projectId String
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  groupId   String
+  group     UserGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, groupId])
+  @@index([projectId])
+  @@index([groupId])
 }
