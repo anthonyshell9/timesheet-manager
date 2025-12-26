@@ -32,7 +32,9 @@ import {
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
-import { Search, Plus, Users, Settings, Shield, Activity, Edit } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Search, Plus, Users, Settings, Shield, Activity, Edit, FolderKanban } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -49,6 +51,31 @@ interface User {
   hasLocalAuth?: boolean;
   totpEnabled?: boolean;
   authMethods?: string[];
+}
+
+interface Project {
+  id: string;
+  name: string;
+  code: string;
+  color: string;
+  isActive: boolean;
+}
+
+interface UserGroup {
+  id: string;
+  name: string;
+  description: string | null;
+  color: string | null;
+  isActive: boolean;
+  members: Array<{
+    user: {
+      id: string;
+      name: string;
+      email: string;
+      role: string;
+    };
+  }>;
+  _count: { members: number };
 }
 
 const roleLabels = {
@@ -73,6 +100,24 @@ export default function AdminPage() {
     authMethod: 'azure' as 'azure' | 'local' | 'both',
     password: '',
   });
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [projectDialogOpen, setProjectDialogOpen] = useState(false);
+  const [projectDialogUser, setProjectDialogUser] = useState<User | null>(null);
+  const [userProjects, setUserProjects] = useState<{
+    assignedProjectIds: string[];
+    validatingProjectIds: string[];
+  }>({ assignedProjectIds: [], validatingProjectIds: [] });
+
+  // User groups state
+  const [groups, setGroups] = useState<UserGroup[]>([]);
+  const [groupDialogOpen, setGroupDialogOpen] = useState(false);
+  const [editingGroup, setEditingGroup] = useState<UserGroup | null>(null);
+  const [groupFormData, setGroupFormData] = useState({
+    name: '',
+    description: '',
+    color: '#6B7280',
+    memberIds: [] as string[],
+  });
 
   const fetchUsers = async () => {
     try {
@@ -95,6 +140,205 @@ export default function AdminPage() {
   useEffect(() => {
     fetchUsers();
   }, [search, roleFilter]);
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const res = await fetch('/api/projects');
+        const data = await res.json();
+        if (data.success) {
+          setProjects(data.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch projects:', error);
+      }
+    };
+    fetchProjects();
+  }, []);
+
+  const fetchGroups = async () => {
+    try {
+      const res = await fetch('/api/groups');
+      const data = await res.json();
+      if (data.success) {
+        setGroups(data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch groups:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchGroups();
+  }, []);
+
+  const openProjectDialog = async (user: User) => {
+    setProjectDialogUser(user);
+    try {
+      const res = await fetch(`/api/users/${user.id}/projects`);
+      const data = await res.json();
+      if (data.success) {
+        setUserProjects({
+          assignedProjectIds: data.data.assignedProjects.map((p: Project) => p.id),
+          validatingProjectIds: data.data.validatingProjects.map((p: Project) => p.id),
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch user projects:', error);
+    }
+    setProjectDialogOpen(true);
+  };
+
+  const handleSaveProjects = async () => {
+    if (!projectDialogUser) return;
+
+    try {
+      const res = await fetch(`/api/users/${projectDialogUser.id}/projects`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userProjects),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        toast({
+          title: 'Succès',
+          description: 'Projets assignés avec succès',
+        });
+        setProjectDialogOpen(false);
+        setProjectDialogUser(null);
+      } else {
+        toast({
+          title: 'Erreur',
+          description: data.error || 'Erreur lors de l\'assignation',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Erreur',
+        description: 'Erreur lors de l\'assignation des projets',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const toggleProjectAssignment = (projectId: string) => {
+    setUserProjects((prev) => ({
+      ...prev,
+      assignedProjectIds: prev.assignedProjectIds.includes(projectId)
+        ? prev.assignedProjectIds.filter((id) => id !== projectId)
+        : [...prev.assignedProjectIds, projectId],
+    }));
+  };
+
+  const toggleValidatorAssignment = (projectId: string) => {
+    setUserProjects((prev) => ({
+      ...prev,
+      validatingProjectIds: prev.validatingProjectIds.includes(projectId)
+        ? prev.validatingProjectIds.filter((id) => id !== projectId)
+        : [...prev.validatingProjectIds, projectId],
+    }));
+  };
+
+  // Group management functions
+  const openGroupDialog = (group?: UserGroup) => {
+    if (group) {
+      setEditingGroup(group);
+      setGroupFormData({
+        name: group.name,
+        description: group.description || '',
+        color: group.color || '#6B7280',
+        memberIds: group.members.map((m) => m.user.id),
+      });
+    } else {
+      setEditingGroup(null);
+      setGroupFormData({
+        name: '',
+        description: '',
+        color: '#6B7280',
+        memberIds: [],
+      });
+    }
+    setGroupDialogOpen(true);
+  };
+
+  const handleGroupSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      const url = editingGroup ? `/api/groups/${editingGroup.id}` : '/api/groups';
+      const method = editingGroup ? 'PATCH' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(groupFormData),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        toast({
+          title: 'Succès',
+          description: editingGroup ? 'Groupe modifié' : 'Groupe créé',
+        });
+        setGroupDialogOpen(false);
+        fetchGroups();
+      } else {
+        toast({
+          title: 'Erreur',
+          description: data.error || 'Erreur lors de l\'enregistrement',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Erreur',
+        description: 'Erreur lors de l\'enregistrement',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDeleteGroup = async (group: UserGroup) => {
+    if (!confirm(`Supprimer le groupe "${group.name}" ?`)) return;
+
+    try {
+      const res = await fetch(`/api/groups/${group.id}`, { method: 'DELETE' });
+      const data = await res.json();
+
+      if (data.success) {
+        toast({
+          title: 'Succès',
+          description: 'Groupe supprimé',
+        });
+        fetchGroups();
+      } else {
+        toast({
+          title: 'Erreur',
+          description: data.error || 'Erreur lors de la suppression',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Erreur',
+        description: 'Erreur lors de la suppression',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const toggleGroupMember = (userId: string) => {
+    setGroupFormData((prev) => ({
+      ...prev,
+      memberIds: prev.memberIds.includes(userId)
+        ? prev.memberIds.filter((id) => id !== userId)
+        : [...prev.memberIds, userId],
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -223,6 +467,10 @@ export default function AdminPage() {
           <TabsTrigger value="users" className="gap-2">
             <Users className="h-4 w-4" />
             Utilisateurs
+          </TabsTrigger>
+          <TabsTrigger value="groups" className="gap-2">
+            <Users className="h-4 w-4" />
+            Groupes
           </TabsTrigger>
           <TabsTrigger value="settings" className="gap-2">
             <Settings className="h-4 w-4" />
@@ -531,6 +779,14 @@ export default function AdminPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openProjectDialog(user)}
+                              title="Gérer les projets"
+                            >
+                              <FolderKanban className="h-4 w-4" />
+                            </Button>
                             <Button variant="ghost" size="icon" onClick={() => handleEdit(user)}>
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -540,6 +796,95 @@ export default function AdminPage() {
                               onClick={() => handleToggleActive(user)}
                             >
                               {user.isActive ? 'Désactiver' : 'Activer'}
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="groups" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <CardTitle>Gestion des groupes</CardTitle>
+                  <CardDescription>
+                    Créez et gérez des groupes d'utilisateurs
+                  </CardDescription>
+                </div>
+                <Button onClick={() => openGroupDialog()}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Nouveau groupe
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {groups.length === 0 ? (
+                <div className="text-center py-8">
+                  <Users className="mx-auto h-12 w-12 text-muted-foreground" />
+                  <h3 className="mt-4 text-lg font-medium">Aucun groupe</h3>
+                  <p className="text-muted-foreground">
+                    Créez votre premier groupe d'utilisateurs
+                  </p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nom</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Membres</TableHead>
+                      <TableHead>Statut</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {groups.map((group) => (
+                      <TableRow key={group.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="h-3 w-3 rounded-full"
+                              style={{ backgroundColor: group.color || '#6B7280' }}
+                            />
+                            <span className="font-medium">{group.name}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="max-w-[200px] truncate">
+                          {group.description || '-'}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">
+                            {group._count.members} membre{group._count.members !== 1 ? 's' : ''}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={group.isActive ? 'success' : 'secondary'}>
+                            {group.isActive ? 'Actif' : 'Inactif'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openGroupDialog(group)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-destructive hover:text-destructive"
+                              onClick={() => handleDeleteGroup(group)}
+                            >
+                              Supprimer
                             </Button>
                           </div>
                         </TableCell>
@@ -580,6 +925,203 @@ export default function AdminPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Group Dialog */}
+      <Dialog open={groupDialogOpen} onOpenChange={setGroupDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <form onSubmit={handleGroupSubmit}>
+            <DialogHeader>
+              <DialogTitle>
+                {editingGroup ? 'Modifier le groupe' : 'Nouveau groupe'}
+              </DialogTitle>
+              <DialogDescription>
+                {editingGroup
+                  ? 'Modifiez les informations du groupe'
+                  : 'Créez un nouveau groupe d\'utilisateurs'}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Nom du groupe *</Label>
+                  <Input
+                    value={groupFormData.name}
+                    onChange={(e) =>
+                      setGroupFormData({ ...groupFormData, name: e.target.value })
+                    }
+                    required
+                    placeholder="Ex: Équipe Marketing"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Couleur</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="color"
+                      value={groupFormData.color}
+                      onChange={(e) =>
+                        setGroupFormData({ ...groupFormData, color: e.target.value })
+                      }
+                      className="w-14 h-10 p-1 cursor-pointer"
+                    />
+                    <Input
+                      value={groupFormData.color}
+                      onChange={(e) =>
+                        setGroupFormData({ ...groupFormData, color: e.target.value })
+                      }
+                      placeholder="#6B7280"
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <Input
+                  value={groupFormData.description}
+                  onChange={(e) =>
+                    setGroupFormData({ ...groupFormData, description: e.target.value })
+                  }
+                  placeholder="Description du groupe (optionnel)"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Membres ({groupFormData.memberIds.length} sélectionné{groupFormData.memberIds.length !== 1 ? 's' : ''})</Label>
+                <ScrollArea className="h-[200px] rounded-md border p-4">
+                  <div className="space-y-3">
+                    {users.filter((u) => u.isActive).map((user) => (
+                      <div key={user.id} className="flex items-center gap-3">
+                        <Checkbox
+                          id={`group-member-${user.id}`}
+                          checked={groupFormData.memberIds.includes(user.id)}
+                          onCheckedChange={() => toggleGroupMember(user.id)}
+                        />
+                        <label
+                          htmlFor={`group-member-${user.id}`}
+                          className="flex-1 text-sm cursor-pointer"
+                        >
+                          <span className="font-medium">{user.name}</span>
+                          <span className="text-muted-foreground ml-2">({user.email})</span>
+                        </label>
+                        <Badge variant={roleLabels[user.role].variant} className="text-xs">
+                          {roleLabels[user.role].label}
+                        </Badge>
+                      </div>
+                    ))}
+                    {users.filter((u) => u.isActive).length === 0 && (
+                      <p className="text-sm text-muted-foreground">Aucun utilisateur actif</p>
+                    )}
+                  </div>
+                </ScrollArea>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setGroupDialogOpen(false)}
+              >
+                Annuler
+              </Button>
+              <Button type="submit">
+                {editingGroup ? 'Modifier' : 'Créer'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Project Assignment Dialog */}
+      <Dialog open={projectDialogOpen} onOpenChange={setProjectDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Gestion des projets</DialogTitle>
+            <DialogDescription>
+              {projectDialogUser && (
+                <>Assignez des projets à <strong>{projectDialogUser.name}</strong></>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-6 py-4">
+            {/* Assigned Projects */}
+            <div className="space-y-3">
+              <Label className="text-base font-semibold">Projets assignés</Label>
+              <p className="text-sm text-muted-foreground">
+                Projets sur lesquels l'utilisateur peut saisir du temps
+              </p>
+              <ScrollArea className="h-[200px] rounded-md border p-4">
+                <div className="space-y-3">
+                  {projects.filter((p) => p.isActive).map((project) => (
+                    <div key={project.id} className="flex items-center gap-3">
+                      <Checkbox
+                        id={`assign-${project.id}`}
+                        checked={userProjects.assignedProjectIds.includes(project.id)}
+                        onCheckedChange={() => toggleProjectAssignment(project.id)}
+                      />
+                      <div
+                        className="h-3 w-3 rounded-full"
+                        style={{ backgroundColor: project.color || '#3B82F6' }}
+                      />
+                      <label
+                        htmlFor={`assign-${project.id}`}
+                        className="flex-1 text-sm cursor-pointer"
+                      >
+                        {project.name}
+                        <span className="text-muted-foreground ml-2">({project.code})</span>
+                      </label>
+                    </div>
+                  ))}
+                  {projects.filter((p) => p.isActive).length === 0 && (
+                    <p className="text-sm text-muted-foreground">Aucun projet actif</p>
+                  )}
+                </div>
+              </ScrollArea>
+            </div>
+
+            {/* Validator Projects - Only show for validators and admins */}
+            {projectDialogUser && (projectDialogUser.role === 'VALIDATOR' || projectDialogUser.role === 'ADMIN') && (
+              <div className="space-y-3">
+                <Label className="text-base font-semibold">Projets à valider</Label>
+                <p className="text-sm text-muted-foreground">
+                  Projets dont l'utilisateur peut valider les feuilles de temps
+                </p>
+                <ScrollArea className="h-[200px] rounded-md border p-4">
+                  <div className="space-y-3">
+                    {projects.filter((p) => p.isActive).map((project) => (
+                      <div key={project.id} className="flex items-center gap-3">
+                        <Checkbox
+                          id={`validate-${project.id}`}
+                          checked={userProjects.validatingProjectIds.includes(project.id)}
+                          onCheckedChange={() => toggleValidatorAssignment(project.id)}
+                        />
+                        <div
+                          className="h-3 w-3 rounded-full"
+                          style={{ backgroundColor: project.color || '#3B82F6' }}
+                        />
+                        <label
+                          htmlFor={`validate-${project.id}`}
+                          className="flex-1 text-sm cursor-pointer"
+                        >
+                          {project.name}
+                          <span className="text-muted-foreground ml-2">({project.code})</span>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setProjectDialogOpen(false)}>
+              Annuler
+            </Button>
+            <Button onClick={handleSaveProjects}>
+              Enregistrer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

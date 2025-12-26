@@ -135,9 +135,46 @@ export default function ReportsPage() {
     fetchReport();
   }, [startDate, endDate, projectId]);
 
-  const handleExport = async (format: 'csv' | 'excel' | 'pdf') => {
-    // TODO: Implement export
-    console.log(`Exporting as ${format}`);
+  const handleExport = async (exportFormat: 'csv' | 'excel' | 'pdf') => {
+    try {
+      const params = new URLSearchParams({
+        format: exportFormat,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+      });
+      if (projectId !== 'all') {
+        params.append('projectId', projectId);
+      }
+
+      const response = await fetch(`/api/reports/export?${params}`);
+
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
+
+      // Get filename from Content-Disposition header
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = `rapport.${exportFormat === 'excel' ? 'xlsx' : exportFormat}`;
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename="(.+)"/);
+        if (match) {
+          filename = match[1];
+        }
+      }
+
+      // Download the file
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Export error:', error);
+    }
   };
 
   const quickRanges = [

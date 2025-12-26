@@ -90,6 +90,12 @@ model User {
   // Projects assigned to validate
   validatingProjects ProjectValidator[]
 
+  // Projects assigned to work on
+  assignedProjects   ProjectMember[]
+
+  // User groups membership
+  userGroups         UserGroupMember[]
+
   // Notifications
   notifications Notification[]
 
@@ -162,6 +168,7 @@ model Project {
   subProjects   SubProject[]
   timeEntries   TimeEntry[]
   validators    ProjectValidator[]
+  members       ProjectMember[]
 
   @@index([code])
   @@index([isActive])
@@ -186,6 +193,22 @@ model SubProject {
 }
 
 model ProjectValidator {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
+}
+
+// Project membership - which projects users can work on
+model ProjectMember {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
 
@@ -344,4 +367,36 @@ model Setting {
   updatedAt DateTime @updatedAt
 
   @@index([category])
+}
+
+// User Groups
+model UserGroup {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  color       String?  @default("#6B7280")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  members     UserGroupMember[]
+
+  @@index([name])
+  @@index([isActive])
+}
+
+model UserGroupMember {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  groupId   String
+  group     UserGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([groupId])
+  @@index([userId])
 }

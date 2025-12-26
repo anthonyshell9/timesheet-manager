@@ -89,17 +89,48 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       select: { userId: true },
     });
 
-    const uniqueValidatorIds = [...new Set(validators.map((v) => v.userId))];
+    // Collect all validator IDs: project validators + user's manager
+    const validatorIds = new Set(validators.map((v) => v.userId));
+
+    // Add the user's manager as a validator if they have one
+    if (timesheet.user.managerId) {
+      validatorIds.add(timesheet.user.managerId);
+    }
+
+    // If no validators found, get all users with VALIDATOR or ADMIN role
+    if (validatorIds.size === 0) {
+      const adminValidators = await prisma.user.findMany({
+        where: {
+          role: { in: ['ADMIN', 'VALIDATOR'] },
+          isActive: true,
+          id: { not: session.user.id }, // Exclude self
+        },
+        select: { id: true },
+      });
+      adminValidators.forEach((v) => validatorIds.add(v.id));
+    }
+
+    const uniqueValidatorIds = [...validatorIds];
 
     // Create pending approvals
     for (const validatorId of uniqueValidatorIds) {
-      await prisma.approval.create({
-        data: {
+      // Check if approval already exists
+      const existingApproval = await prisma.approval.findFirst({
+        where: {
           timesheetId: id,
           validatorId,
-          status: 'PENDING',
         },
       });
+
+      if (!existingApproval) {
+        await prisma.approval.create({
+          data: {
+            timesheetId: id,
+            validatorId,
+            status: 'PENDING',
+          },
+        });
+      }
 
       // Create notification for validator
       await prisma.notification.create({

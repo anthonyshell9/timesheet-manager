@@ -92,9 +92,9 @@ export default function TOTPSetupPage() {
       // Update session to reflect TOTP enabled
       await update();
 
-      // Redirect after success
+      // Force full page reload to refresh middleware state
       setTimeout(() => {
-        router.push('/dashboard');
+        window.location.href = '/dashboard';
       }, 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de vérification');
@@ -253,16 +253,10 @@ export default function TOTPSetupPage() {
           </CardContent>
         </Card>
 
-        {/* Cancel Button */}
-        <div className="text-center">
-          <Button
-            variant="ghost"
-            onClick={() => router.push('/dashboard')}
-            disabled={isSubmitting}
-          >
-            Annuler et configurer plus tard
-          </Button>
-        </div>
+        {/* Info */}
+        <p className="text-center text-xs text-muted-foreground">
+          La configuration MFA est obligatoire pour les comptes locaux
+        </p>
       </div>
     </div>
   );
