@@ -211,14 +211,14 @@ export default function AdminPage() {
       } else {
         toast({
           title: 'Erreur',
-          description: data.error || 'Erreur lors de l\'assignation',
+          description: data.error || "Erreur lors de l'assignation",
           variant: 'destructive',
         });
       }
     } catch (error) {
       toast({
         title: 'Erreur',
-        description: 'Erreur lors de l\'assignation des projets',
+        description: "Erreur lors de l'assignation des projets",
         variant: 'destructive',
       });
     }
@@ -289,14 +289,14 @@ export default function AdminPage() {
       } else {
         toast({
           title: 'Erreur',
-          description: data.error || 'Erreur lors de l\'enregistrement',
+          description: data.error || "Erreur lors de l'enregistrement",
           variant: 'destructive',
         });
       }
     } catch (error) {
       toast({
         title: 'Erreur',
-        description: 'Erreur lors de l\'enregistrement',
+        description: "Erreur lors de l'enregistrement",
         variant: 'destructive',
       });
     }
@@ -357,7 +357,10 @@ export default function AdminPage() {
         // Creating new user
         payload.email = formData.email;
         payload.authMethod = formData.authMethod;
-        if (formData.password && (formData.authMethod === 'local' || formData.authMethod === 'both')) {
+        if (
+          formData.password &&
+          (formData.authMethod === 'local' || formData.authMethod === 'both')
+        ) {
           payload.password = formData.password;
         }
       } else {
@@ -402,7 +405,7 @@ export default function AdminPage() {
     } catch (error) {
       toast({
         title: 'Erreur',
-        description: 'Erreur lors de l\'enregistrement',
+        description: "Erreur lors de l'enregistrement",
         variant: 'destructive',
       });
     }
@@ -448,7 +451,14 @@ export default function AdminPage() {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', email: '', role: 'USER', managerId: '', authMethod: 'azure', password: '' });
+    setFormData({
+      name: '',
+      email: '',
+      role: 'USER',
+      managerId: '',
+      authMethod: 'azure',
+      password: '',
+    });
   };
 
   const validators = users.filter((u) => u.role === 'VALIDATOR' || u.role === 'ADMIN');
@@ -531,7 +541,12 @@ export default function AdminPage() {
                 </div>
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button onClick={() => { setEditingUser(null); resetForm(); }}>
+                    <Button
+                      onClick={() => {
+                        setEditingUser(null);
+                        resetForm();
+                      }}
+                    >
                       <Plus className="mr-2 h-4 w-4" />
                       Nouvel utilisateur
                     </Button>
@@ -540,11 +555,11 @@ export default function AdminPage() {
                     <form onSubmit={handleSubmit}>
                       <DialogHeader>
                         <DialogTitle>
-                          {editingUser ? 'Modifier l\'utilisateur' : 'Nouvel utilisateur'}
+                          {editingUser ? "Modifier l'utilisateur" : 'Nouvel utilisateur'}
                         </DialogTitle>
                         <DialogDescription>
                           {editingUser
-                            ? 'Modifiez les informations de l\'utilisateur'
+                            ? "Modifiez les informations de l'utilisateur"
                             : 'Créez un nouveau compte utilisateur'}
                         </DialogDescription>
                       </DialogHeader>
@@ -589,7 +604,9 @@ export default function AdminPage() {
                           <Label>Manager</Label>
                           <Select
                             value={formData.managerId || 'none'}
-                            onValueChange={(v) => setFormData({ ...formData, managerId: v === 'none' ? '' : v })}
+                            onValueChange={(v) =>
+                              setFormData({ ...formData, managerId: v === 'none' ? '' : v })
+                            }
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Aucun manager" />
@@ -612,7 +629,10 @@ export default function AdminPage() {
                             <Select
                               value={formData.authMethod}
                               onValueChange={(v) =>
-                                setFormData({ ...formData, authMethod: v as typeof formData.authMethod })
+                                setFormData({
+                                  ...formData,
+                                  authMethod: v as typeof formData.authMethod,
+                                })
                               }
                             >
                               <SelectTrigger>
@@ -628,16 +648,25 @@ export default function AdminPage() {
                         )}
 
                         {/* Password field */}
-                        {(formData.authMethod === 'local' || formData.authMethod === 'both' || editingUser) && (
+                        {(formData.authMethod === 'local' ||
+                          formData.authMethod === 'both' ||
+                          editingUser) && (
                           <div className="space-y-2">
                             <Label>
-                              {editingUser ? 'Nouveau mot de passe (laisser vide pour ne pas changer)' : 'Mot de passe *'}
+                              {editingUser
+                                ? 'Nouveau mot de passe (laisser vide pour ne pas changer)'
+                                : 'Mot de passe *'}
                             </Label>
                             <Input
                               type="password"
                               value={formData.password}
-                              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                              required={!editingUser && (formData.authMethod === 'local' || formData.authMethod === 'both')}
+                              onChange={(e) =>
+                                setFormData({ ...formData, password: e.target.value })
+                              }
+                              required={
+                                !editingUser &&
+                                (formData.authMethod === 'local' || formData.authMethod === 'both')
+                              }
                               minLength={8}
                               placeholder="Minimum 8 caractères"
                             />
@@ -646,7 +675,7 @@ export default function AdminPage() {
 
                         {/* TOTP status for editing */}
                         {editingUser && editingUser.hasLocalAuth && (
-                          <div className="space-y-2 p-3 rounded-md bg-muted">
+                          <div className="space-y-2 rounded-md bg-muted p-3">
                             <div className="flex items-center justify-between">
                               <div>
                                 <Label>MFA (TOTP)</Label>
@@ -668,7 +697,7 @@ export default function AdminPage() {
                                       });
                                       toast({
                                         title: 'MFA réinitialisé',
-                                        description: 'L\'utilisateur devra reconfigurer son MFA',
+                                        description: "L'utilisateur devra reconfigurer son MFA",
                                       });
                                       fetchUsers();
                                     }
@@ -682,9 +711,7 @@ export default function AdminPage() {
                         )}
                       </div>
                       <DialogFooter>
-                        <Button type="submit">
-                          {editingUser ? 'Modifier' : 'Créer'}
-                        </Button>
+                        <Button type="submit">{editingUser ? 'Modifier' : 'Créer'}</Button>
                       </DialogFooter>
                     </form>
                   </DialogContent>
@@ -693,7 +720,7 @@ export default function AdminPage() {
             </CardHeader>
             <CardContent>
               {/* Filters */}
-              <div className="flex gap-4 mb-4">
+              <div className="mb-4 flex gap-4">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
@@ -719,7 +746,7 @@ export default function AdminPage() {
               {/* Table */}
               {isLoading ? (
                 <div className="flex justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
                 </div>
               ) : (
                 <Table>
@@ -758,7 +785,7 @@ export default function AdminPage() {
                                 variant={user.totpEnabled ? 'default' : 'secondary'}
                                 className="text-xs"
                               >
-                                <Shield className="h-3 w-3 mr-1" />
+                                <Shield className="mr-1 h-3 w-3" />
                                 {user.totpEnabled ? 'MFA' : 'No MFA'}
                               </Badge>
                             )}
@@ -814,9 +841,7 @@ export default function AdminPage() {
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <CardTitle>Gestion des groupes</CardTitle>
-                  <CardDescription>
-                    Créez et gérez des groupes d'utilisateurs
-                  </CardDescription>
+                  <CardDescription>Créez et gérez des groupes d'utilisateurs</CardDescription>
                 </div>
                 <Button onClick={() => openGroupDialog()}>
                   <Plus className="mr-2 h-4 w-4" />
@@ -826,12 +851,10 @@ export default function AdminPage() {
             </CardHeader>
             <CardContent>
               {groups.length === 0 ? (
-                <div className="text-center py-8">
+                <div className="py-8 text-center">
                   <Users className="mx-auto h-12 w-12 text-muted-foreground" />
                   <h3 className="mt-4 text-lg font-medium">Aucun groupe</h3>
-                  <p className="text-muted-foreground">
-                    Créez votre premier groupe d'utilisateurs
-                  </p>
+                  <p className="text-muted-foreground">Créez votre premier groupe d'utilisateurs</p>
                 </div>
               ) : (
                 <Table>
@@ -931,13 +954,11 @@ export default function AdminPage() {
         <DialogContent className="max-w-2xl">
           <form onSubmit={handleGroupSubmit}>
             <DialogHeader>
-              <DialogTitle>
-                {editingGroup ? 'Modifier le groupe' : 'Nouveau groupe'}
-              </DialogTitle>
+              <DialogTitle>{editingGroup ? 'Modifier le groupe' : 'Nouveau groupe'}</DialogTitle>
               <DialogDescription>
                 {editingGroup
                   ? 'Modifiez les informations du groupe'
-                  : 'Créez un nouveau groupe d\'utilisateurs'}
+                  : "Créez un nouveau groupe d'utilisateurs"}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -946,9 +967,7 @@ export default function AdminPage() {
                   <Label>Nom du groupe *</Label>
                   <Input
                     value={groupFormData.name}
-                    onChange={(e) =>
-                      setGroupFormData({ ...groupFormData, name: e.target.value })
-                    }
+                    onChange={(e) => setGroupFormData({ ...groupFormData, name: e.target.value })}
                     required
                     placeholder="Ex: Équipe Marketing"
                   />
@@ -962,7 +981,7 @@ export default function AdminPage() {
                       onChange={(e) =>
                         setGroupFormData({ ...groupFormData, color: e.target.value })
                       }
-                      className="w-14 h-10 p-1 cursor-pointer"
+                      className="h-10 w-14 cursor-pointer p-1"
                     />
                     <Input
                       value={groupFormData.color}
@@ -986,28 +1005,33 @@ export default function AdminPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Membres ({groupFormData.memberIds.length} sélectionné{groupFormData.memberIds.length !== 1 ? 's' : ''})</Label>
+                <Label>
+                  Membres ({groupFormData.memberIds.length} sélectionné
+                  {groupFormData.memberIds.length !== 1 ? 's' : ''})
+                </Label>
                 <ScrollArea className="h-[200px] rounded-md border p-4">
                   <div className="space-y-3">
-                    {users.filter((u) => u.isActive).map((user) => (
-                      <div key={user.id} className="flex items-center gap-3">
-                        <Checkbox
-                          id={`group-member-${user.id}`}
-                          checked={groupFormData.memberIds.includes(user.id)}
-                          onCheckedChange={() => toggleGroupMember(user.id)}
-                        />
-                        <label
-                          htmlFor={`group-member-${user.id}`}
-                          className="flex-1 text-sm cursor-pointer"
-                        >
-                          <span className="font-medium">{user.name}</span>
-                          <span className="text-muted-foreground ml-2">({user.email})</span>
-                        </label>
-                        <Badge variant={roleLabels[user.role].variant} className="text-xs">
-                          {roleLabels[user.role].label}
-                        </Badge>
-                      </div>
-                    ))}
+                    {users
+                      .filter((u) => u.isActive)
+                      .map((user) => (
+                        <div key={user.id} className="flex items-center gap-3">
+                          <Checkbox
+                            id={`group-member-${user.id}`}
+                            checked={groupFormData.memberIds.includes(user.id)}
+                            onCheckedChange={() => toggleGroupMember(user.id)}
+                          />
+                          <label
+                            htmlFor={`group-member-${user.id}`}
+                            className="flex-1 cursor-pointer text-sm"
+                          >
+                            <span className="font-medium">{user.name}</span>
+                            <span className="ml-2 text-muted-foreground">({user.email})</span>
+                          </label>
+                          <Badge variant={roleLabels[user.role].variant} className="text-xs">
+                            {roleLabels[user.role].label}
+                          </Badge>
+                        </div>
+                      ))}
                     {users.filter((u) => u.isActive).length === 0 && (
                       <p className="text-sm text-muted-foreground">Aucun utilisateur actif</p>
                     )}
@@ -1016,16 +1040,10 @@ export default function AdminPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setGroupDialogOpen(false)}
-              >
+              <Button type="button" variant="outline" onClick={() => setGroupDialogOpen(false)}>
                 Annuler
               </Button>
-              <Button type="submit">
-                {editingGroup ? 'Modifier' : 'Créer'}
-              </Button>
+              <Button type="submit">{editingGroup ? 'Modifier' : 'Créer'}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -1038,7 +1056,9 @@ export default function AdminPage() {
             <DialogTitle>Gestion des projets</DialogTitle>
             <DialogDescription>
               {projectDialogUser && (
-                <>Assignez des projets à <strong>{projectDialogUser.name}</strong></>
+                <>
+                  Assignez des projets à <strong>{projectDialogUser.name}</strong>
+                </>
               )}
             </DialogDescription>
           </DialogHeader>
@@ -1051,26 +1071,28 @@ export default function AdminPage() {
               </p>
               <ScrollArea className="h-[200px] rounded-md border p-4">
                 <div className="space-y-3">
-                  {projects.filter((p) => p.isActive).map((project) => (
-                    <div key={project.id} className="flex items-center gap-3">
-                      <Checkbox
-                        id={`assign-${project.id}`}
-                        checked={userProjects.assignedProjectIds.includes(project.id)}
-                        onCheckedChange={() => toggleProjectAssignment(project.id)}
-                      />
-                      <div
-                        className="h-3 w-3 rounded-full"
-                        style={{ backgroundColor: project.color || '#3B82F6' }}
-                      />
-                      <label
-                        htmlFor={`assign-${project.id}`}
-                        className="flex-1 text-sm cursor-pointer"
-                      >
-                        {project.name}
-                        <span className="text-muted-foreground ml-2">({project.code})</span>
-                      </label>
-                    </div>
-                  ))}
+                  {projects
+                    .filter((p) => p.isActive)
+                    .map((project) => (
+                      <div key={project.id} className="flex items-center gap-3">
+                        <Checkbox
+                          id={`assign-${project.id}`}
+                          checked={userProjects.assignedProjectIds.includes(project.id)}
+                          onCheckedChange={() => toggleProjectAssignment(project.id)}
+                        />
+                        <div
+                          className="h-3 w-3 rounded-full"
+                          style={{ backgroundColor: project.color || '#3B82F6' }}
+                        />
+                        <label
+                          htmlFor={`assign-${project.id}`}
+                          className="flex-1 cursor-pointer text-sm"
+                        >
+                          {project.name}
+                          <span className="ml-2 text-muted-foreground">({project.code})</span>
+                        </label>
+                      </div>
+                    ))}
                   {projects.filter((p) => p.isActive).length === 0 && (
                     <p className="text-sm text-muted-foreground">Aucun projet actif</p>
                   )}
@@ -1079,46 +1101,47 @@ export default function AdminPage() {
             </div>
 
             {/* Validator Projects - Only show for validators and admins */}
-            {projectDialogUser && (projectDialogUser.role === 'VALIDATOR' || projectDialogUser.role === 'ADMIN') && (
-              <div className="space-y-3">
-                <Label className="text-base font-semibold">Projets à valider</Label>
-                <p className="text-sm text-muted-foreground">
-                  Projets dont l'utilisateur peut valider les feuilles de temps
-                </p>
-                <ScrollArea className="h-[200px] rounded-md border p-4">
-                  <div className="space-y-3">
-                    {projects.filter((p) => p.isActive).map((project) => (
-                      <div key={project.id} className="flex items-center gap-3">
-                        <Checkbox
-                          id={`validate-${project.id}`}
-                          checked={userProjects.validatingProjectIds.includes(project.id)}
-                          onCheckedChange={() => toggleValidatorAssignment(project.id)}
-                        />
-                        <div
-                          className="h-3 w-3 rounded-full"
-                          style={{ backgroundColor: project.color || '#3B82F6' }}
-                        />
-                        <label
-                          htmlFor={`validate-${project.id}`}
-                          className="flex-1 text-sm cursor-pointer"
-                        >
-                          {project.name}
-                          <span className="text-muted-foreground ml-2">({project.code})</span>
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </div>
-            )}
+            {projectDialogUser &&
+              (projectDialogUser.role === 'VALIDATOR' || projectDialogUser.role === 'ADMIN') && (
+                <div className="space-y-3">
+                  <Label className="text-base font-semibold">Projets à valider</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Projets dont l'utilisateur peut valider les feuilles de temps
+                  </p>
+                  <ScrollArea className="h-[200px] rounded-md border p-4">
+                    <div className="space-y-3">
+                      {projects
+                        .filter((p) => p.isActive)
+                        .map((project) => (
+                          <div key={project.id} className="flex items-center gap-3">
+                            <Checkbox
+                              id={`validate-${project.id}`}
+                              checked={userProjects.validatingProjectIds.includes(project.id)}
+                              onCheckedChange={() => toggleValidatorAssignment(project.id)}
+                            />
+                            <div
+                              className="h-3 w-3 rounded-full"
+                              style={{ backgroundColor: project.color || '#3B82F6' }}
+                            />
+                            <label
+                              htmlFor={`validate-${project.id}`}
+                              className="flex-1 cursor-pointer text-sm"
+                            >
+                              {project.name}
+                              <span className="ml-2 text-muted-foreground">({project.code})</span>
+                            </label>
+                          </div>
+                        ))}
+                    </div>
+                  </ScrollArea>
+                </div>
+              )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setProjectDialogOpen(false)}>
               Annuler
             </Button>
-            <Button onClick={handleSaveProjects}>
-              Enregistrer
-            </Button>
+            <Button onClick={handleSaveProjects}>Enregistrer</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

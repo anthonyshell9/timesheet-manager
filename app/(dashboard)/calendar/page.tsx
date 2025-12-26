@@ -122,11 +122,11 @@ export default function CalendarPage() {
           </CardHeader>
           <CardContent>
             {/* Week days header */}
-            <div className="grid grid-cols-7 gap-1 mb-2">
+            <div className="mb-2 grid grid-cols-7 gap-1">
               {weekDays.map((day) => (
                 <div
                   key={day}
-                  className="text-center text-sm font-medium text-muted-foreground py-2"
+                  className="py-2 text-center text-sm font-medium text-muted-foreground"
                 >
                   {day}
                 </div>
@@ -146,14 +146,14 @@ export default function CalendarPage() {
                     key={day.toISOString()}
                     onClick={() => setSelectedDate(day)}
                     className={cn(
-                      'aspect-square p-1 rounded-lg border text-left transition-colors',
+                      'aspect-square rounded-lg border p-1 text-left transition-colors',
                       'hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-ring',
                       !isSameMonth(day, currentMonth) && 'opacity-40',
                       isToday(day) && 'border-primary',
                       isSelected && 'bg-primary text-primary-foreground hover:bg-primary/90'
                     )}
                   >
-                    <div className="flex flex-col h-full">
+                    <div className="flex h-full flex-col">
                       <span
                         className={cn(
                           'text-sm font-medium',
@@ -166,7 +166,7 @@ export default function CalendarPage() {
                         <div className="mt-auto">
                           <Badge
                             variant={isSelected ? 'secondary' : 'outline'}
-                            className="text-xs w-full justify-center"
+                            className="w-full justify-center text-xs"
                           >
                             {total.toFixed(1)}h
                           </Badge>
@@ -174,7 +174,7 @@ export default function CalendarPage() {
                       )}
                       {/* Project dots */}
                       {dayEntries.length > 0 && (
-                        <div className="flex gap-0.5 mt-1 flex-wrap">
+                        <div className="mt-1 flex flex-wrap gap-0.5">
                           {[...new Set(dayEntries.map((e) => e.project.color))]
                             .slice(0, 4)
                             .map((color, i) => (
@@ -211,23 +211,21 @@ export default function CalendarPage() {
           </CardHeader>
           <CardContent>
             {!selectedDate ? (
-              <p className="text-center text-muted-foreground py-8">
+              <p className="py-8 text-center text-muted-foreground">
                 Cliquez sur un jour du calendrier pour voir les entrées
               </p>
             ) : selectedDayEntries.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">
-                Aucune entrée pour ce jour
-              </p>
+              <p className="py-8 text-center text-muted-foreground">Aucune entrée pour ce jour</p>
             ) : (
               <div className="space-y-3">
                 {selectedDayEntries.map((entry) => (
-                  <div key={entry.id} className="flex items-center gap-3 p-3 rounded-lg border">
+                  <div key={entry.id} className="flex items-center gap-3 rounded-lg border p-3">
                     <div
-                      className="h-3 w-3 rounded-full flex-shrink-0"
+                      className="h-3 w-3 flex-shrink-0 rounded-full"
                       style={{ backgroundColor: entry.project.color }}
                     />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{entry.project.name}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium">{entry.project.name}</p>
                       <p className="text-sm text-muted-foreground">{entry.project.code}</p>
                     </div>
                     <Badge variant="outline">{(entry.duration / 60).toFixed(1)}h</Badge>
