@@ -96,13 +96,13 @@ export function verifyAuditLogIntegrity(
  */
 export function createTimesheetHash(
   userId: string,
-  weekStart: Date,
+  timesheetId: string,
   totalHours: number,
   entryCount: number
 ): string {
   const data = JSON.stringify({
     userId,
-    weekStart: weekStart.toISOString(),
+    timesheetId,
     totalHours,
     entryCount,
     timestamp: new Date().toISOString(),

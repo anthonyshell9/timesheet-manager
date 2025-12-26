@@ -61,7 +61,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Create integrity hash
     const integrityHash = createTimesheetHash(
       timesheet.userId,
-      timesheet.weekStart,
+      timesheet.id,
       Number(timesheet.totalHours),
       timesheet.timeEntries.length
     );
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           userId: validatorId,
           type: 'TIMESHEET_SUBMITTED',
           title: 'Nouvelle feuille de temps à valider',
-          message: `${timesheet.user.name} a soumis sa feuille de temps pour la semaine du ${timesheet.weekStart.toLocaleDateString('fr-FR')}`,
+          message: `${timesheet.user.name} a soumis sa feuille de temps (${Number(timesheet.totalHours).toFixed(1)}h)`,
           data: {
             timesheetId: id,
             userId: timesheet.userId,

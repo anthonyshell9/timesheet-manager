@@ -260,8 +260,9 @@ model TimeEntry {
 
 model TimeSheet {
   id          String          @id @default(cuid())
-  weekStart   DateTime        @db.Date
-  weekEnd     DateTime        @db.Date
+  name        String?         // Optional name for the submission
+  periodStart DateTime?       @db.Date
+  periodEnd   DateTime?       @db.Date
   status      TimesheetStatus @default(DRAFT)
   totalHours  Decimal         @default(0) @db.Decimal(10, 2)
   submittedAt DateTime?
@@ -282,10 +283,8 @@ model TimeSheet {
   timeEntries TimeEntry[]
   approvals   Approval[]
 
-  @@unique([userId, weekStart])
   @@index([userId])
   @@index([status])
-  @@index([weekStart])
   @@index([userId, status])
 }
 

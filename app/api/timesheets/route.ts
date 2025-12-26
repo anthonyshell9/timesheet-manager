@@ -5,13 +5,10 @@ import {
   createdResponse,
   serverErrorResponse,
   requireAuth,
-  validateRequest,
   getPagination,
   createPaginationMeta,
 } from '@/lib/api-utils';
-import { timesheetCreateSchema } from '@/lib/validations';
 import { logCrudOperation } from '@/lib/audit';
-import { addDays, startOfWeek } from 'date-fns';
 
 export async function GET(request: NextRequest) {
   try {
@@ -67,8 +64,9 @@ export async function GET(request: NextRequest) {
         where,
         select: {
           id: true,
-          weekStart: true,
-          weekEnd: true,
+          name: true,
+          periodStart: true,
+          periodEnd: true,
           status: true,
           totalHours: true,
           submittedAt: true,
@@ -95,7 +93,7 @@ export async function GET(request: NextRequest) {
           },
         },
         ...getPagination(page, limit),
-        orderBy: { weekStart: 'desc' },
+        orderBy: { createdAt: 'desc' },
       }),
       prisma.timeSheet.count({ where }),
     ]);
@@ -111,23 +109,22 @@ export async function POST(request: NextRequest) {
     const { session, error: authError } = await requireAuth();
     if (authError) return authError;
 
-    const { data, error: validationError } = await validateRequest(
-      request,
-      timesheetCreateSchema
-    );
-    if (validationError) return validationError;
+    // Get optional name from body
+    let name: string | undefined;
+    try {
+      const body = await request.json();
+      name = body.name;
+    } catch {
+      // No body or invalid JSON
+    }
 
-    const weekStart = startOfWeek(new Date(data.weekStart), { weekStartsOn: 1 });
-    const weekEnd = addDays(weekStart, 6);
-
-    // Check if timesheet already exists
-    const existing = await prisma.timeSheet.findUnique({
+    // Check if user already has a DRAFT timesheet
+    const existing = await prisma.timeSheet.findFirst({
       where: {
-        userId_weekStart: {
-          userId: session.user.id,
-          weekStart,
-        },
+        userId: session.user.id,
+        status: 'DRAFT',
       },
+      orderBy: { createdAt: 'desc' },
     });
 
     if (existing) {
@@ -137,14 +134,14 @@ export async function POST(request: NextRequest) {
     const timesheet = await prisma.timeSheet.create({
       data: {
         userId: session.user.id,
-        weekStart,
-        weekEnd,
+        name,
         status: 'DRAFT',
       },
       select: {
         id: true,
-        weekStart: true,
-        weekEnd: true,
+        name: true,
+        periodStart: true,
+        periodEnd: true,
         status: true,
         totalHours: true,
         createdAt: true,

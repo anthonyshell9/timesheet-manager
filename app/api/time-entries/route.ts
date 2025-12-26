@@ -12,7 +12,6 @@ import {
 } from '@/lib/api-utils';
 import { timeEntryCreateSchema } from '@/lib/validations';
 import { logCrudOperation } from '@/lib/audit';
-import { addDays, startOfWeek } from 'date-fns';
 
 export async function GET(request: NextRequest) {
   try {
@@ -100,39 +99,20 @@ export async function POST(request: NextRequest) {
     );
     if (validationError) return validationError;
 
-    // Get or create timesheet for this week
-    const entryDate = new Date(data.date);
-    const weekStart = startOfWeek(entryDate, { weekStartsOn: 1 });
-    const weekEnd = addDays(weekStart, 6);
-
-    let timesheet = await prisma.timeSheet.findUnique({
+    // Find or create a DRAFT timesheet for this user
+    let timesheet = await prisma.timeSheet.findFirst({
       where: {
-        userId_weekStart: {
-          userId: session.user.id,
-          weekStart,
-        },
+        userId: session.user.id,
+        status: 'DRAFT',
       },
+      orderBy: { createdAt: 'desc' },
     });
 
     if (!timesheet) {
       timesheet = await prisma.timeSheet.create({
         data: {
           userId: session.user.id,
-          weekStart,
-          weekEnd,
           status: 'DRAFT',
-        },
-      });
-    }
-
-    // If timesheet is locked, reopen it automatically
-    if (['APPROVED', 'REJECTED'].includes(timesheet.status)) {
-      timesheet = await prisma.timeSheet.update({
-        where: { id: timesheet.id },
-        data: {
-          status: 'REOPENED',
-          lockedAt: null,
-          lockedById: null,
         },
       });
     }
@@ -144,7 +124,7 @@ export async function POST(request: NextRequest) {
         projectId: data.projectId,
         subProjectId: data.subProjectId,
         timesheetId: timesheet.id,
-        date: entryDate,
+        date: new Date(data.date),
         startTime: data.startTime,
         endTime: data.endTime,
         duration: data.duration,

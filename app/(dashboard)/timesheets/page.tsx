@@ -44,8 +44,10 @@ import Link from 'next/link';
 
 interface TimeSheet {
   id: string;
-  weekStart: string;
-  weekEnd: string;
+  name: string | null;
+  periodStart: string | null;
+  periodEnd: string | null;
+  createdAt: string;
   status: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED' | 'REOPENED';
   totalHours: number;
   submittedAt: string | null;
@@ -204,7 +206,7 @@ export default function TimesheetsPage() {
             <div>
               <CardTitle>Mes feuilles de temps</CardTitle>
               <CardDescription>
-                Gérez et soumettez vos feuilles de temps hebdomadaires
+                Gérez et soumettez vos feuilles de temps
               </CardDescription>
             </div>
             <div className="flex gap-2">
@@ -253,7 +255,7 @@ export default function TimesheetsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Période</TableHead>
+                  <TableHead>Feuille de temps</TableHead>
                   <TableHead>Statut</TableHead>
                   <TableHead>Heures</TableHead>
                   <TableHead>Entrées</TableHead>
@@ -270,11 +272,10 @@ export default function TimesheetsPage() {
                     <TableRow key={timesheet.id}>
                       <TableCell>
                         <div className="font-medium">
-                          Semaine du {format(new Date(timesheet.weekStart), 'd MMM', { locale: fr })}
+                          {timesheet.name || `Feuille du ${format(new Date(timesheet.createdAt), 'd MMM yyyy', { locale: fr })}`}
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          {format(new Date(timesheet.weekStart), 'd MMM', { locale: fr })} -{' '}
-                          {format(new Date(timesheet.weekEnd), 'd MMM yyyy', { locale: fr })}
+                          Créée le {format(new Date(timesheet.createdAt), 'd MMM yyyy HH:mm', { locale: fr })}
                         </div>
                       </TableCell>
                       <TableCell>

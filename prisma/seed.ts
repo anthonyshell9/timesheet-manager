@@ -1,5 +1,5 @@
 import { PrismaClient, Role, TimesheetStatus } from '@prisma/client';
-import { addDays, startOfWeek, subWeeks } from 'date-fns';
+import { addDays } from 'date-fns';
 
 const prisma = new PrismaClient();
 
@@ -203,34 +203,28 @@ async function main() {
   console.log('Project validators assigned');
 
   // Create sample time entries and timesheets
-  const currentWeekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
-  const lastWeekStart = subWeeks(currentWeekStart, 1);
+  const today = new Date();
 
-  // Create timesheet for last week (submitted)
-  const timesheetLastWeek = await prisma.timeSheet.upsert({
-    where: {
-      userId_weekStart: { userId: regularUser.id, weekStart: lastWeekStart },
-    },
-    update: {},
-    create: {
+  // Create timesheet for submitted entries
+  const timesheetSubmitted = await prisma.timeSheet.create({
+    data: {
       userId: regularUser.id,
-      weekStart: lastWeekStart,
-      weekEnd: addDays(lastWeekStart, 6),
+      name: 'Feuille de temps décembre',
       status: TimesheetStatus.SUBMITTED,
       totalHours: 40.0,
       submittedAt: new Date(),
     },
   });
 
-  // Create time entries for last week
+  // Create time entries for submitted timesheet
   for (let i = 0; i < 5; i++) {
-    const entryDate = addDays(lastWeekStart, i);
+    const entryDate = addDays(today, -10 + i);
     await prisma.timeEntry.create({
       data: {
         userId: regularUser.id,
         projectId: projectEDF.id,
         subProjectId: subProjectsEDF[i % 3]?.id,
-        timesheetId: timesheetLastWeek.id,
+        timesheetId: timesheetSubmitted.id,
         date: entryDate,
         startTime: '09:00',
         endTime: '12:30',
@@ -245,7 +239,7 @@ async function main() {
         userId: regularUser.id,
         projectId: projectEDF.id,
         subProjectId: subProjectsEDF[(i + 1) % 3]?.id,
-        timesheetId: timesheetLastWeek.id,
+        timesheetId: timesheetSubmitted.id,
         date: entryDate,
         startTime: '14:00',
         endTime: '18:30',
@@ -256,30 +250,24 @@ async function main() {
     });
   }
 
-  // Create timesheet for current week (draft)
-  const timesheetCurrentWeek = await prisma.timeSheet.upsert({
-    where: {
-      userId_weekStart: { userId: regularUser.id, weekStart: currentWeekStart },
-    },
-    update: {},
-    create: {
+  // Create draft timesheet for current entries
+  const timesheetDraft = await prisma.timeSheet.create({
+    data: {
       userId: regularUser.id,
-      weekStart: currentWeekStart,
-      weekEnd: addDays(currentWeekStart, 6),
       status: TimesheetStatus.DRAFT,
       totalHours: 16.0,
     },
   });
 
-  // Create some time entries for current week
+  // Create some time entries for draft timesheet
   for (let i = 0; i < 2; i++) {
-    const entryDate = addDays(currentWeekStart, i);
+    const entryDate = addDays(today, -i);
     await prisma.timeEntry.create({
       data: {
         userId: regularUser.id,
         projectId: projectBNP.id,
         subProjectId: subProjectsBNP[0]?.id,
-        timesheetId: timesheetCurrentWeek.id,
+        timesheetId: timesheetDraft.id,
         date: entryDate,
         startTime: '09:00',
         endTime: '17:00',
@@ -300,7 +288,7 @@ async function main() {
     update: {},
     create: {
       id: 'approval-seed-1',
-      timesheetId: timesheetLastWeek.id,
+      timesheetId: timesheetSubmitted.id,
       validatorId: validatorUser.id,
       status: 'PENDING',
     },

@@ -41,8 +41,10 @@ interface Approval {
   createdAt: string;
   timesheet: {
     id: string;
-    weekStart: string;
-    weekEnd: string;
+    name: string | null;
+    createdAt: string;
+    periodStart: string | null;
+    periodEnd: string | null;
     status: string;
     totalHours: number;
     user: {
@@ -213,10 +215,8 @@ export default function ValidationsPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div>
-                        {format(new Date(approval.timesheet.weekStart), 'd MMM', { locale: fr })}
-                        {' - '}
-                        {format(new Date(approval.timesheet.weekEnd), 'd MMM yyyy', { locale: fr })}
+                      <div className="font-medium">
+                        {approval.timesheet.name || format(new Date(approval.timesheet.createdAt), 'd MMM yyyy', { locale: fr })}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -304,10 +304,7 @@ export default function ValidationsPage() {
             <DialogDescription>
               {selectedApproval && (
                 <>
-                  Feuille de temps de {selectedApproval.timesheet.user.name} pour la semaine du{' '}
-                  {format(new Date(selectedApproval.timesheet.weekStart), 'd MMMM yyyy', {
-                    locale: fr,
-                  })}
+                  Feuille de temps de {selectedApproval.timesheet.user.name} ({Number(selectedApproval.timesheet.totalHours).toFixed(1)}h)
                 </>
               )}
             </DialogDescription>

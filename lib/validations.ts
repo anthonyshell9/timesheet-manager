@@ -74,7 +74,7 @@ export const timeEntryBulkCreateSchema = z.object({
 // ==================== TimeSheet Validations ====================
 
 export const timesheetCreateSchema = z.object({
-  weekStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format de date invalide'),
+  name: z.string().optional(),
 });
 
 export const timesheetSubmitSchema = z.object({
