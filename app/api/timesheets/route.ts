@@ -24,13 +24,25 @@ export async function GET(request: NextRequest) {
 
     let where: Record<string, unknown> = {};
 
-    // For validators, include timesheets they need to validate
-    if (session.user.role === 'VALIDATOR' && includeValidating) {
+    // Default: always show only current user's timesheets
+    // Use userId param to explicitly request another user's timesheets (admin only)
+    if (userId && session.user.role === 'ADMIN') {
+      // Admin requesting specific user's timesheets
+      where = { userId };
+    } else if (includeValidating && (session.user.role === 'VALIDATOR' || session.user.role === 'ADMIN')) {
+      // Include timesheets that need validation
       const validatingProjects = await prisma.projectValidator.findMany({
         where: { userId: session.user.id },
         select: { projectId: true },
       });
       const projectIds = validatingProjects.map((p) => p.projectId);
+
+      // Get subordinates for managers
+      const subordinates = await prisma.user.findMany({
+        where: { managerId: session.user.id },
+        select: { id: true },
+      });
+      const subordinateIds = subordinates.map((s) => s.id);
 
       where = {
         OR: [
@@ -39,19 +51,25 @@ export async function GET(request: NextRequest) {
             AND: [
               { status: 'SUBMITTED' },
               {
-                timeEntries: {
-                  some: {
-                    projectId: { in: projectIds },
+                OR: [
+                  // Timesheets with projects the user validates
+                  {
+                    timeEntries: {
+                      some: {
+                        projectId: { in: projectIds },
+                      },
+                    },
                   },
-                },
+                  // Timesheets from subordinates
+                  { userId: { in: subordinateIds } },
+                ],
               },
             ],
           },
         ],
       };
-    } else if (session.user.role === 'ADMIN' && userId) {
-      where = { userId };
-    } else if (session.user.role !== 'ADMIN') {
+    } else {
+      // Default: only current user's timesheets
       where = { userId: session.user.id };
     }
 

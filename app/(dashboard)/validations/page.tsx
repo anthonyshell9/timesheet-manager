@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -22,10 +23,11 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useToast } from '@/components/ui/use-toast';
-import { format } from 'date-fns';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { CheckCircle, XCircle, Clock, Eye, RefreshCw, FileText } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Eye, RefreshCw, FileText, Users, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 
 interface Approval {
   id: string;
@@ -48,14 +50,31 @@ interface Approval {
   };
 }
 
+interface TeamMember {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  hasSubmittedThisWeek: boolean;
+  hasSubmittedThisMonth: boolean;
+  lastTimesheetDate: string | null;
+  totalHoursThisWeek: number;
+  pendingTimesheet: { id: string; totalHours: number } | null;
+}
+
 export default function ValidationsPage() {
   const { toast } = useToast();
+  const { data: session } = useSession();
   const [approvals, setApprovals] = useState<Approval[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<'PENDING' | 'APPROVED' | 'REJECTED' | 'all'>('PENDING');
   const [selectedApproval, setSelectedApproval] = useState<Approval | null>(null);
   const [dialogAction, setDialogAction] = useState<'approve' | 'reject' | null>(null);
   const [comment, setComment] = useState('');
+
+  // Team status
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [isLoadingTeam, setIsLoadingTeam] = useState(true);
 
   const fetchApprovals = async () => {
     try {
@@ -75,6 +94,27 @@ export default function ValidationsPage() {
   useEffect(() => {
     fetchApprovals();
   }, [filter]);
+
+  // Fetch team status
+  const fetchTeamStatus = async () => {
+    try {
+      const res = await fetch('/api/team/status');
+      const data = await res.json();
+      if (data.success) {
+        setTeamMembers(data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch team status:', error);
+    } finally {
+      setIsLoadingTeam(false);
+    }
+  };
+
+  useEffect(() => {
+    if (session?.user?.role === 'ADMIN' || session?.user?.role === 'VALIDATOR') {
+      fetchTeamStatus();
+    }
+  }, [session]);
 
   const handleAction = async () => {
     if (!selectedApproval || !dialogAction) return;
@@ -119,9 +159,33 @@ export default function ValidationsPage() {
   };
 
   const pendingCount = approvals.filter((a) => a.status === 'PENDING').length;
+  const missingTimesheetCount = teamMembers.filter((m) => !m.hasSubmittedThisWeek && !m.pendingTimesheet).length;
 
   return (
     <div className="space-y-6">
+      <Tabs defaultValue="approvals">
+        <TabsList>
+          <TabsTrigger value="approvals" className="gap-2">
+            <FileText className="h-4 w-4" />
+            Validations
+            {pendingCount > 0 && (
+              <Badge variant="secondary" className="ml-1">
+                {pendingCount}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="team" className="gap-2">
+            <Users className="h-4 w-4" />
+            Suivi équipe
+            {missingTimesheetCount > 0 && (
+              <Badge variant="destructive" className="ml-1">
+                {missingTimesheetCount}
+              </Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="approvals" className="space-y-6">
       {/* Filter Tabs */}
       <div className="flex gap-2">
         <Button
@@ -339,6 +403,133 @@ export default function ValidationsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+        </TabsContent>
+
+        {/* Team Status Tab */}
+        <TabsContent value="team" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Suivi des feuilles de temps de l'équipe
+              </CardTitle>
+              <CardDescription>
+                Semaine du {format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'd MMMM', { locale: fr })} au{' '}
+                {format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'd MMMM yyyy', { locale: fr })}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingTeam ? (
+                <div className="flex justify-center py-8">
+                  <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
+                </div>
+              ) : teamMembers.length === 0 ? (
+                <div className="py-8 text-center">
+                  <Users className="mx-auto h-12 w-12 text-muted-foreground" />
+                  <h3 className="mt-4 text-lg font-medium">Aucun membre d'équipe</h3>
+                  <p className="text-muted-foreground">
+                    Aucun collaborateur n'est assigné à votre équipe
+                  </p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Collaborateur</TableHead>
+                      <TableHead>Statut semaine</TableHead>
+                      <TableHead>Heures cette semaine</TableHead>
+                      <TableHead>Dernière FDT</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {teamMembers.map((member) => (
+                      <TableRow key={member.id}>
+                        <TableCell>
+                          <div className="font-medium">{member.name}</div>
+                          <div className="text-sm text-muted-foreground">{member.email}</div>
+                        </TableCell>
+                        <TableCell>
+                          {member.pendingTimesheet ? (
+                            <Badge variant="default" className="gap-1">
+                              <Clock className="h-3 w-3" />
+                              En attente
+                            </Badge>
+                          ) : member.hasSubmittedThisWeek ? (
+                            <Badge variant="success" className="gap-1">
+                              <CheckCircle className="h-3 w-3" />
+                              Soumise
+                            </Badge>
+                          ) : (
+                            <Badge variant="destructive" className="gap-1">
+                              <AlertTriangle className="h-3 w-3" />
+                              Non soumise
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <span className={member.totalHoursThisWeek < 35 ? 'text-orange-500' : ''}>
+                            {member.totalHoursThisWeek.toFixed(1)}h
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          {member.lastTimesheetDate
+                            ? format(new Date(member.lastTimesheetDate), 'dd/MM/yyyy', { locale: fr })
+                            : <span className="text-muted-foreground">Jamais</span>
+                          }
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {member.pendingTimesheet && (
+                            <Link href={`/timesheets/${member.pendingTimesheet.id}`}>
+                              <Button variant="outline" size="sm">
+                                <Eye className="mr-2 h-4 w-4" />
+                                Voir ({member.pendingTimesheet.totalHours.toFixed(1)}h)
+                              </Button>
+                            </Link>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Summary Cards */}
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Total équipe</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{teamMembers.length}</div>
+                <p className="text-xs text-muted-foreground">collaborateurs</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">FDT soumises</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">
+                  {teamMembers.filter((m) => m.hasSubmittedThisWeek || m.pendingTimesheet).length}
+                </div>
+                <p className="text-xs text-muted-foreground">cette semaine</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">En attente</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-red-600">{missingTimesheetCount}</div>
+                <p className="text-xs text-muted-foreground">pas de soumission</p>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

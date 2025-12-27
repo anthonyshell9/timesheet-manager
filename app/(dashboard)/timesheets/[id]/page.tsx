@@ -260,9 +260,13 @@ export default function TimesheetDetailPage({ params }: { params: Promise<{ id: 
   const StatusIcon = status.icon;
   const isOwner = timesheet.user.id === session?.user?.id;
   const isAdmin = session?.user?.role === 'ADMIN';
+  const isValidator = session?.user?.role === 'VALIDATOR';
+  const isManager = timesheet.user.manager?.id === session?.user?.id;
   const canSubmit = isOwner && ['DRAFT', 'REOPENED'].includes(timesheet.status);
   const canApprove = (timesheet.canValidate || isAdmin) && timesheet.status === 'SUBMITTED';
-  const canReopen = (isOwner || isAdmin) && ['APPROVED', 'REJECTED'].includes(timesheet.status);
+  // Only managers, validators, and admins can reopen (not the owner)
+  const canReopen = (isAdmin || isValidator || isManager || timesheet.canValidate) &&
+                    ['APPROVED', 'REJECTED'].includes(timesheet.status);
 
   return (
     <div className="space-y-6">

@@ -119,7 +119,17 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         },
       });
 
-      if (!existingApproval) {
+      if (existingApproval) {
+        // Reset existing approval to PENDING (for reopened timesheets)
+        await prisma.approval.update({
+          where: { id: existingApproval.id },
+          data: {
+            status: 'PENDING',
+            validatedAt: null,
+            comment: null,
+          },
+        });
+      } else {
         await prisma.approval.create({
           data: {
             timesheetId: id,
