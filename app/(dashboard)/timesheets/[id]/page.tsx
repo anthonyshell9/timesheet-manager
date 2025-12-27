@@ -37,6 +37,7 @@ import {
   Calendar,
   MessageSquare,
   Loader2,
+  Trash2,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
@@ -103,6 +104,7 @@ export default function TimesheetDetailPage({ params }: { params: Promise<{ id: 
   const [showApproveDialog, setShowApproveDialog] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [showReopenDialog, setShowReopenDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [comments, setComments] = useState('');
 
   useEffect(() => {
@@ -237,6 +239,26 @@ export default function TimesheetDetailPage({ params }: { params: Promise<{ id: 
     }
   };
 
+  const handleDelete = async () => {
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`/api/timesheets/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+
+      if (data.success) {
+        toast({ title: 'Succès', description: 'Feuille de temps supprimée' });
+        router.push('/timesheets');
+      } else {
+        toast({ title: 'Erreur', description: data.error, variant: 'destructive' });
+      }
+    } catch (error) {
+      toast({ title: 'Erreur', description: 'Erreur lors de la suppression', variant: 'destructive' });
+    } finally {
+      setIsSubmitting(false);
+      setShowDeleteDialog(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center py-12">
@@ -267,6 +289,8 @@ export default function TimesheetDetailPage({ params }: { params: Promise<{ id: 
   // Only managers, validators, and admins can reopen (not the owner)
   const canReopen = (isAdmin || isValidator || isManager || timesheet.canValidate) &&
                     ['APPROVED', 'REJECTED'].includes(timesheet.status);
+  // Owner can delete non-submitted timesheets
+  const canDelete = isOwner && ['DRAFT', 'REOPENED'].includes(timesheet.status);
 
   return (
     <div className="space-y-6">
@@ -318,6 +342,13 @@ export default function TimesheetDetailPage({ params }: { params: Promise<{ id: 
             <Button onClick={() => setShowReopenDialog(true)} variant="outline">
               <RefreshCw className="mr-2 h-4 w-4" />
               Réouvrir
+            </Button>
+          )}
+
+          {canDelete && (
+            <Button onClick={() => setShowDeleteDialog(true)} variant="destructive">
+              <Trash2 className="mr-2 h-4 w-4" />
+              Supprimer
             </Button>
           )}
         </div>
@@ -585,6 +616,27 @@ export default function TimesheetDetailPage({ params }: { params: Promise<{ id: 
             <Button onClick={handleReopen} disabled={isSubmitting}>
               {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
               Réouvrir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Supprimer la feuille de temps</DialogTitle>
+            <DialogDescription>
+              Cette action est irréversible. Toutes les entrées de temps associées seront également supprimées.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+              Annuler
+            </Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+              Supprimer
             </Button>
           </DialogFooter>
         </DialogContent>

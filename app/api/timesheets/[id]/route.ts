@@ -6,7 +6,9 @@ import {
   serverErrorResponse,
   requireAuth,
   forbiddenResponse,
+  errorResponse,
 } from '@/lib/api-utils';
+import { logCrudOperation } from '@/lib/audit';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -132,6 +134,65 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       totalsByProject,
       canValidate,
     });
+  } catch (error) {
+    return serverErrorResponse(error);
+  }
+}
+
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  try {
+    const { session, error: authError } = await requireAuth();
+    if (authError) return authError;
+
+    const { id } = await params;
+
+    const timesheet = await prisma.timeSheet.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        userId: true,
+        status: true,
+        _count: {
+          select: { timeEntries: true },
+        },
+      },
+    });
+
+    if (!timesheet) {
+      return notFoundResponse('Feuille de temps');
+    }
+
+    // Only owner can delete their own timesheet
+    if (timesheet.userId !== session.user.id) {
+      return forbiddenResponse();
+    }
+
+    // Can only delete DRAFT or REOPENED timesheets
+    if (!['DRAFT', 'REOPENED'].includes(timesheet.status)) {
+      return errorResponse(
+        'Impossible de supprimer une feuille de temps déjà soumise',
+        400
+      );
+    }
+
+    // Delete associated time entries first
+    await prisma.timeEntry.deleteMany({
+      where: { timesheetId: id },
+    });
+
+    // Delete associated approvals
+    await prisma.approval.deleteMany({
+      where: { timesheetId: id },
+    });
+
+    // Delete the timesheet
+    await prisma.timeSheet.delete({
+      where: { id },
+    });
+
+    await logCrudOperation('DELETE', 'TimeSheet', id);
+
+    return successResponse({ message: 'Feuille de temps supprimée' });
   } catch (error) {
     return serverErrorResponse(error);
   }
