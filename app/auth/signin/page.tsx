@@ -64,7 +64,7 @@ function SignInContent() {
       case 'CredentialsSignin':
         return 'Identifiants invalides.';
       default:
-        return errorCode ? 'Une erreur s\'est produite. Veuillez réessayer.' : null;
+        return errorCode ? "Une erreur s'est produite. Veuillez réessayer." : null;
     }
   };
 
@@ -97,9 +97,7 @@ function SignInContent() {
         <Card className="shadow-xl">
           <CardHeader className="text-center">
             <CardTitle>Connexion</CardTitle>
-            <CardDescription>
-              Choisissez votre méthode de connexion
-            </CardDescription>
+            <CardDescription>Choisissez votre méthode de connexion</CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="microsoft" className="w-full">
@@ -204,11 +202,13 @@ function SignInContent() {
 
 export default function SignInPage() {
   return (
-    <Suspense fallback={
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
+        </div>
+      }
+    >
       <SignInContent />
     </Suspense>
   );

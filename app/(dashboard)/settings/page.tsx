@@ -10,7 +10,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
-import { User, Shield, Key, Loader2, CheckCircle, XCircle, AlertCircle, Settings } from 'lucide-react';
+import {
+  User,
+  Shield,
+  Key,
+  Loader2,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  Settings,
+} from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -57,7 +66,7 @@ export default function SettingsPage() {
 
   if (status === 'loading') {
     return (
-      <div className="flex justify-center items-center py-8">
+      <div className="flex items-center justify-center py-8">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -237,7 +246,9 @@ export default function SettingsPage() {
                 <div className="space-y-2">
                   <Label>Rôle</Label>
                   <div>
-                    <Badge>{roleLabels[session?.user?.role as keyof typeof roleLabels] || 'Utilisateur'}</Badge>
+                    <Badge>
+                      {roleLabels[session?.user?.role as keyof typeof roleLabels] || 'Utilisateur'}
+                    </Badge>
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -269,7 +280,10 @@ export default function SettingsPage() {
                     Choisissez entre le format 24 heures ou AM/PM
                   </p>
                 </div>
-                <Select value={timeFormat} onValueChange={(val) => handleTimeFormatChange(val as '24h' | '12h')}>
+                <Select
+                  value={timeFormat}
+                  onValueChange={(val) => handleTimeFormatChange(val as '24h' | '12h')}
+                >
                   <SelectTrigger className="w-32">
                     <SelectValue />
                   </SelectTrigger>
@@ -305,19 +319,14 @@ export default function SettingsPage() {
                 <div className="space-y-6">
                   <div className="flex justify-center">
                     <div className="rounded-lg border bg-white p-4">
-                      <img
-                        src={totpSetupData.qrCode}
-                        alt="QR Code"
-                        width={200}
-                        height={200}
-                      />
+                      <img src={totpSetupData.qrCode} alt="QR Code" width={200} height={200} />
                     </div>
                   </div>
                   <div className="text-center">
-                    <p className="text-sm text-muted-foreground mb-2">
+                    <p className="mb-2 text-sm text-muted-foreground">
                       Scannez ce code avec votre application d'authentification
                     </p>
-                    <code className="bg-muted px-2 py-1 rounded text-sm">
+                    <code className="rounded bg-muted px-2 py-1 text-sm">
                       {totpSetupData.secret}
                     </code>
                   </div>
@@ -332,7 +341,7 @@ export default function SettingsPage() {
                         placeholder="000000"
                         value={verificationCode}
                         onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
-                        className="text-center text-xl tracking-widest font-mono"
+                        className="text-center font-mono text-xl tracking-widest"
                       />
                       <Button
                         onClick={handleVerifyTOTP}
@@ -381,9 +390,7 @@ export default function SettingsPage() {
                   <Key className="h-5 w-5" />
                   Changer le mot de passe
                 </CardTitle>
-                <CardDescription>
-                  Modifiez votre mot de passe de connexion
-                </CardDescription>
+                <CardDescription>Modifiez votre mot de passe de connexion</CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleChangePassword} className="space-y-4">

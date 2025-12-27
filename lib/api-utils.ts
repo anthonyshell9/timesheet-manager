@@ -145,10 +145,9 @@ export function validateQueryParams<T>(
 
 // Auth helpers
 export async function requireAuth(): Promise<
-  | { session: ExtendedSession; error: null }
-  | { session: null; error: NextResponse }
+  { session: ExtendedSession; error: null } | { session: null; error: NextResponse }
 > {
-  const session = await getServerSession(authOptions) as ExtendedSession | null;
+  const session = (await getServerSession(authOptions)) as ExtendedSession | null;
 
   if (!session?.user) {
     return { session: null, error: unauthorizedResponse('Session non valide') };
@@ -159,10 +158,7 @@ export async function requireAuth(): Promise<
 
 export async function requireRole(
   allowedRoles: Role[]
-): Promise<
-  | { session: ExtendedSession; error: null }
-  | { session: null; error: NextResponse }
-> {
+): Promise<{ session: ExtendedSession; error: null } | { session: null; error: NextResponse }> {
   const { session, error } = await requireAuth();
 
   if (error) return { session: null, error };
@@ -170,7 +166,7 @@ export async function requireRole(
   if (!allowedRoles.includes(session.user.role)) {
     return {
       session: null,
-      error: forbiddenResponse('Vous n\'avez pas les permissions nécessaires'),
+      error: forbiddenResponse("Vous n'avez pas les permissions nécessaires"),
     };
   }
 

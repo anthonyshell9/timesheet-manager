@@ -81,7 +81,7 @@ function TOTPVerifyContent() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4 dark:from-gray-900 dark:to-gray-800">
       <div className="w-full max-w-md space-y-6">
         {/* Header */}
         <div className="text-center">
@@ -115,7 +115,9 @@ function TOTPVerifyContent() {
           <CardContent>
             <form onSubmit={handleVerify} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="code" className="sr-only">Code de vérification</Label>
+                <Label htmlFor="code" className="sr-only">
+                  Code de vérification
+                </Label>
                 <Input
                   id="code"
                   type="text"
@@ -125,7 +127,7 @@ function TOTPVerifyContent() {
                   placeholder="000000"
                   value={verificationCode}
                   onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
-                  className="text-center text-3xl tracking-widest font-mono h-16"
+                  className="h-16 text-center font-mono text-3xl tracking-widest"
                   required
                   disabled={isSubmitting}
                   autoFocus
@@ -150,7 +152,7 @@ function TOTPVerifyContent() {
         </Card>
 
         {/* User Info & Logout */}
-        <div className="text-center space-y-2">
+        <div className="space-y-2 text-center">
           <p className="text-sm text-muted-foreground">
             Connecté en tant que {session?.user?.email}
           </p>
@@ -171,11 +173,13 @@ function TOTPVerifyContent() {
 
 export default function TOTPVerifyPage() {
   return (
-    <Suspense fallback={
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
+        </div>
+      }
+    >
       <TOTPVerifyContent />
     </Suspense>
   );

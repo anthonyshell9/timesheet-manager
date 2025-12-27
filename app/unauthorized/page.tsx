@@ -32,11 +32,7 @@ export default function UnauthorizedPage() {
                   Tableau de bord
                 </Button>
               </Link>
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => window.history.back()}
-              >
+              <Button variant="outline" className="flex-1" onClick={() => window.history.back()}>
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Retour
               </Button>

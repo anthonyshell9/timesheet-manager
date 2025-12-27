@@ -82,10 +82,7 @@ export async function POST(request: NextRequest) {
     const { session, error: authError } = await requireValidator();
     if (authError) return authError;
 
-    const { data, error: validationError } = await validateRequest(
-      request,
-      approvalCreateSchema
-    );
+    const { data, error: validationError } = await validateRequest(request, approvalCreateSchema);
     if (validationError) return validationError;
 
     // Find the approval record - ADMIN can approve any, others only their own
@@ -144,9 +141,7 @@ export async function POST(request: NextRequest) {
         userId: approval.timesheet.userId,
         type: data.status === 'APPROVED' ? 'TIMESHEET_APPROVED' : 'TIMESHEET_REJECTED',
         title:
-          data.status === 'APPROVED'
-            ? 'Feuille de temps approuvée'
-            : 'Feuille de temps refusée',
+          data.status === 'APPROVED' ? 'Feuille de temps approuvée' : 'Feuille de temps refusée',
         message:
           data.status === 'APPROVED'
             ? `Votre feuille de temps a été approuvée par ${session.user.name}`
@@ -160,14 +155,10 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    await logWorkflowAction(
-      data.status === 'APPROVED' ? 'APPROVE' : 'REJECT',
-      data.timesheetId,
-      {
-        validatorId: session.user.id,
-        comment: data.comment,
-      }
-    );
+    await logWorkflowAction(data.status === 'APPROVED' ? 'APPROVE' : 'REJECT', data.timesheetId, {
+      validatorId: session.user.id,
+      comment: data.comment,
+    });
 
     return successResponse(updated);
   } catch (error) {

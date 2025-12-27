@@ -116,7 +116,7 @@ export default function TOTPSetupPage() {
 
   if (success) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4 dark:from-gray-900 dark:to-gray-800">
         <Card className="w-full max-w-md shadow-xl">
           <CardContent className="pt-6">
             <div className="flex flex-col items-center gap-4 text-center">
@@ -138,7 +138,7 @@ export default function TOTPSetupPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4 dark:from-gray-900 dark:to-gray-800">
       <div className="w-full max-w-lg space-y-6">
         {/* Header */}
         <div className="text-center">
@@ -166,7 +166,8 @@ export default function TOTPSetupPage() {
           <CardHeader>
             <CardTitle>Étape 1: Scanner le QR Code</CardTitle>
             <CardDescription>
-              Utilisez votre application d'authentification (Google Authenticator, Microsoft Authenticator, etc.)
+              Utilisez votre application d'authentification (Google Authenticator, Microsoft
+              Authenticator, etc.)
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -188,17 +189,8 @@ export default function TOTPSetupPage() {
             <div className="space-y-2">
               <Label>Ou entrez ce code manuellement:</Label>
               <div className="flex gap-2">
-                <Input
-                  value={setupData?.secret || ''}
-                  readOnly
-                  className="font-mono text-sm"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={handleCopySecret}
-                >
+                <Input value={setupData?.secret || ''} readOnly className="font-mono text-sm" />
+                <Button type="button" variant="outline" size="icon" onClick={handleCopySecret}>
                   {copied ? (
                     <CheckCircle className="h-4 w-4 text-green-600" />
                   ) : (
@@ -231,7 +223,7 @@ export default function TOTPSetupPage() {
                   placeholder="000000"
                   value={verificationCode}
                   onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
-                  className="text-center text-2xl tracking-widest font-mono"
+                  className="text-center font-mono text-2xl tracking-widest"
                   required
                   disabled={isSubmitting}
                 />

@@ -171,7 +171,7 @@ export default function TimeEntryPage() {
     } catch (error) {
       toast({
         title: 'Erreur',
-        description: 'Erreur lors de l\'enregistrement',
+        description: "Erreur lors de l'enregistrement",
         variant: 'destructive',
       });
     } finally {
@@ -214,7 +214,7 @@ export default function TimeEntryPage() {
   const isToday = format(selectedDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
 
   return (
-    <div className="space-y-6 max-w-3xl mx-auto">
+    <div className="mx-auto max-w-3xl space-y-6">
       {/* Date Navigation */}
       <Card>
         <CardContent className="pt-6">
@@ -228,7 +228,12 @@ export default function TimeEntryPage() {
                 {format(selectedDate, 'EEEE d MMMM yyyy', { locale: fr })}
               </div>
               {!isToday && (
-                <Button variant="link" size="sm" onClick={goToToday} className="text-muted-foreground">
+                <Button
+                  variant="link"
+                  size="sm"
+                  onClick={goToToday}
+                  className="text-muted-foreground"
+                >
                   Retour à aujourd'hui
                 </Button>
               )}
@@ -253,7 +258,13 @@ export default function TimeEntryPage() {
           {/* Project Selection */}
           <div className="space-y-2">
             <Label>Projet *</Label>
-            <Select value={projectId} onValueChange={(val) => { setProjectId(val); setSubProjectId(''); }}>
+            <Select
+              value={projectId}
+              onValueChange={(val) => {
+                setProjectId(val);
+                setSubProjectId('');
+              }}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Choisir un projet" />
               </SelectTrigger>
@@ -362,14 +373,14 @@ export default function TimeEntryPage() {
               <Clock className="h-5 w-5" />
               Temps du jour
             </CardTitle>
-            <Badge variant="secondary" className="text-lg px-3 py-1">
+            <Badge variant="secondary" className="px-3 py-1 text-lg">
               {totalHours}h{remainingMinutes > 0 ? ` ${remainingMinutes}min` : ''}
             </Badge>
           </div>
         </CardHeader>
         <CardContent>
           {entries.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">
+            <p className="py-8 text-center text-muted-foreground">
               Aucune entrée pour cette journée
             </p>
           ) : (
@@ -381,20 +392,18 @@ export default function TimeEntryPage() {
                 >
                   <div className="flex items-center gap-3">
                     <div
-                      className="h-3 w-3 rounded-full flex-shrink-0"
+                      className="h-3 w-3 flex-shrink-0 rounded-full"
                       style={{ backgroundColor: entry.project.color }}
                     />
                     <div>
                       <div className="font-medium">
                         {entry.project.name}
                         {entry.subProject && (
-                          <span className="text-muted-foreground">
-                            {' '}/ {entry.subProject.name}
-                          </span>
+                          <span className="text-muted-foreground"> / {entry.subProject.name}</span>
                         )}
                       </div>
                       {entry.description && (
-                        <div className="text-sm text-muted-foreground line-clamp-1">
+                        <div className="line-clamp-1 text-sm text-muted-foreground">
                           {entry.description}
                         </div>
                       )}
@@ -402,13 +411,10 @@ export default function TimeEntryPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant="outline">
-                      {Math.floor(entry.duration / 60)}h{entry.duration % 60 > 0 ? ` ${entry.duration % 60}min` : ''}
+                      {Math.floor(entry.duration / 60)}h
+                      {entry.duration % 60 > 0 ? ` ${entry.duration % 60}min` : ''}
                     </Badge>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDeleteEntry(entry.id)}
-                    >
+                    <Button variant="ghost" size="icon" onClick={() => handleDeleteEntry(entry.id)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>

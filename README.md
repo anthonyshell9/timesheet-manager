@@ -123,11 +123,11 @@ terraform apply tfplan
 
 ## Profils Utilisateurs
 
-| Rôle | Permissions |
-|------|------------|
-| **Admin** | Accès total: gestion utilisateurs, projets, paramètres |
-| **Validateur** | Approuver/refuser les feuilles de temps assignées |
-| **Utilisateur** | Saisir son temps, voir son récapitulatif |
+| Rôle            | Permissions                                            |
+| --------------- | ------------------------------------------------------ |
+| **Admin**       | Accès total: gestion utilisateurs, projets, paramètres |
+| **Validateur**  | Approuver/refuser les feuilles de temps assignées      |
+| **Utilisateur** | Saisir son temps, voir son récapitulatif               |
 
 ## API
 

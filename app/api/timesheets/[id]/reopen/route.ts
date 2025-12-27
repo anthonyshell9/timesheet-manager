@@ -45,10 +45,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       });
 
       if (!validatorCheck) {
-        return errorResponse(
-          "Vous n'êtes pas autorisé à rouvrir cette feuille de temps",
-          403
-        );
+        return errorResponse("Vous n'êtes pas autorisé à rouvrir cette feuille de temps", 403);
       }
     }
 

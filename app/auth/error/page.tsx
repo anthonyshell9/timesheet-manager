@@ -19,7 +19,7 @@ const errorMessages: Record<string, { title: string; description: string }> = {
   Verification: {
     title: 'Erreur de vérification',
     description:
-      "Le lien de vérification a expiré ou a déjà été utilisé. Veuillez demander un nouveau lien.",
+      'Le lien de vérification a expiré ou a déjà été utilisé. Veuillez demander un nouveau lien.',
   },
   AccountDisabled: {
     title: 'Compte désactivé',
@@ -69,9 +69,7 @@ function ErrorContent() {
           </CardContent>
         </Card>
 
-        <p className="text-center text-xs text-muted-foreground">
-          Code erreur: {error}
-        </p>
+        <p className="text-center text-xs text-muted-foreground">Code erreur: {error}</p>
       </div>
     </div>
   );
@@ -79,11 +77,13 @@ function ErrorContent() {
 
 export default function AuthErrorPage() {
   return (
-    <Suspense fallback={
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
+        </div>
+      }
+    >
       <ErrorContent />
     </Suspense>
   );

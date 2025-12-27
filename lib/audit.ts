@@ -62,17 +62,15 @@ export async function createAuditLog(input: AuditLogInput): Promise<void> {
 /**
  * Verify the integrity of an audit log entry
  */
-export function verifyAuditLogIntegrity(
-  auditLog: {
-    action: AuditAction;
-    resource: string;
-    resourceId: string;
-    userId: string | null;
-    createdAt: Date;
-    details: unknown;
-    signature: string | null;
-  }
-): boolean {
+export function verifyAuditLogIntegrity(auditLog: {
+  action: AuditAction;
+  resource: string;
+  resourceId: string;
+  userId: string | null;
+  createdAt: Date;
+  details: unknown;
+  signature: string | null;
+}): boolean {
   if (!auditLog.signature) return false;
 
   const signatureData = JSON.stringify({

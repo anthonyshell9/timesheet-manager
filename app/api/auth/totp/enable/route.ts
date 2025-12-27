@@ -1,6 +1,12 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireAuth, successResponse, errorResponse, serverErrorResponse, validateRequest } from '@/lib/api-utils';
+import {
+  requireAuth,
+  successResponse,
+  errorResponse,
+  serverErrorResponse,
+  validateRequest,
+} from '@/lib/api-utils';
 import { verifyTOTP } from '@/lib/totp';
 import { z } from 'zod';
 import { logCrudOperation } from '@/lib/audit';
@@ -37,7 +43,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!user.totpSecret) {
-      return errorResponse('Veuillez d\'abord configurer TOTP', 400);
+      return errorResponse("Veuillez d'abord configurer TOTP", 400);
     }
 
     // Verify the token

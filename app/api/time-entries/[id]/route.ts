@@ -100,10 +100,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const { data, error: validationError } = await validateRequest(
-      request,
-      timeEntryUpdateSchema
-    );
+    const { data, error: validationError } = await validateRequest(request, timeEntryUpdateSchema);
     if (validationError) return validationError;
 
     const entry = await prisma.timeEntry.update({

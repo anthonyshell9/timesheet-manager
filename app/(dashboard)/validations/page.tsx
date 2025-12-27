@@ -24,14 +24,7 @@ import {
 import { useToast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import {
-  CheckCircle,
-  XCircle,
-  Clock,
-  Eye,
-  RefreshCw,
-  FileText,
-} from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Eye, RefreshCw, FileText } from 'lucide-react';
 import Link from 'next/link';
 
 interface Approval {
@@ -103,9 +96,7 @@ export default function ValidationsPage() {
         toast({
           title: 'Succès',
           description:
-            dialogAction === 'approve'
-              ? 'Feuille de temps approuvée'
-              : 'Feuille de temps refusée',
+            dialogAction === 'approve' ? 'Feuille de temps approuvée' : 'Feuille de temps refusée',
         });
         setSelectedApproval(null);
         setDialogAction(null);
@@ -162,10 +153,7 @@ export default function ValidationsPage() {
           <XCircle className="h-4 w-4" />
           Refusées
         </Button>
-        <Button
-          variant={filter === 'all' ? 'default' : 'outline'}
-          onClick={() => setFilter('all')}
-        >
+        <Button variant={filter === 'all' ? 'default' : 'outline'} onClick={() => setFilter('all')}>
           Toutes
         </Button>
       </div>
@@ -174,17 +162,15 @@ export default function ValidationsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Demandes de validation</CardTitle>
-          <CardDescription>
-            Feuilles de temps en attente de votre validation
-          </CardDescription>
+          <CardDescription>Feuilles de temps en attente de votre validation</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
             </div>
           ) : approvals.length === 0 ? (
-            <div className="text-center py-8">
+            <div className="py-8 text-center">
               <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
               <h3 className="mt-4 text-lg font-medium">Aucune demande</h3>
               <p className="text-muted-foreground">
@@ -216,7 +202,10 @@ export default function ValidationsPage() {
                     </TableCell>
                     <TableCell>
                       <div className="font-medium">
-                        {approval.timesheet.name || format(new Date(approval.timesheet.createdAt), 'd MMM yyyy', { locale: fr })}
+                        {approval.timesheet.name ||
+                          format(new Date(approval.timesheet.createdAt), 'd MMM yyyy', {
+                            locale: fr,
+                          })}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -299,12 +288,15 @@ export default function ValidationsPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {dialogAction === 'approve' ? 'Approuver la feuille de temps' : 'Refuser la feuille de temps'}
+              {dialogAction === 'approve'
+                ? 'Approuver la feuille de temps'
+                : 'Refuser la feuille de temps'}
             </DialogTitle>
             <DialogDescription>
               {selectedApproval && (
                 <>
-                  Feuille de temps de {selectedApproval.timesheet.user.name} ({Number(selectedApproval.timesheet.totalHours).toFixed(1)}h)
+                  Feuille de temps de {selectedApproval.timesheet.user.name} (
+                  {Number(selectedApproval.timesheet.totalHours).toFixed(1)}h)
                 </>
               )}
             </DialogDescription>

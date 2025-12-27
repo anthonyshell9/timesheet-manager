@@ -28,12 +28,27 @@ export const projectCreateSchema = z.object({
     .string()
     .min(2, 'Le code doit contenir au moins 2 caractères')
     .max(20, 'Le code doit contenir au maximum 20 caractères')
-    .regex(/^[A-Z0-9-]+$/, 'Le code ne peut contenir que des lettres majuscules, chiffres et tirets'),
+    .regex(
+      /^[A-Z0-9-]+$/,
+      'Le code ne peut contenir que des lettres majuscules, chiffres et tirets'
+    ),
   description: z.string().optional().nullable(),
-  hourlyRate: z.number().nonnegative('Le taux horaire doit être positif ou nul').optional().nullable(),
-  budgetHours: z.number().nonnegative('Le budget heures doit être positif ou nul').optional().nullable(),
+  hourlyRate: z
+    .number()
+    .nonnegative('Le taux horaire doit être positif ou nul')
+    .optional()
+    .nullable(),
+  budgetHours: z
+    .number()
+    .nonnegative('Le budget heures doit être positif ou nul')
+    .optional()
+    .nullable(),
   isBillable: z.boolean().default(true),
-  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Couleur invalide').optional().nullable(),
+  color: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/, 'Couleur invalide')
+    .optional()
+    .nullable(),
   startDate: z.string().optional().nullable(),
   endDate: z.string().optional().nullable(),
 });
@@ -55,8 +70,14 @@ export const subProjectUpdateSchema = subProjectCreateSchema.partial().omit({ pr
 
 export const timeEntryCreateSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format de date invalide (YYYY-MM-DD)'),
-  startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/).optional(),
-  endTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/).optional(),
+  startTime: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):([0-5]\d)$/)
+    .optional(),
+  endTime: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):([0-5]\d)$/)
+    .optional(),
   duration: z.number().int().positive('La durée doit être positive'),
   description: z.string().optional(),
   projectId: z.string(),

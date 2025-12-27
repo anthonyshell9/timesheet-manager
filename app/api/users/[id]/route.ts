@@ -88,10 +88,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const transformedUser = {
       ...userWithoutPassword,
       hasLocalAuth: !!password,
-      authMethods: [
-        ...(password ? ['local'] : []),
-        ...(user.azureAdId ? ['azure'] : []),
-      ],
+      authMethods: [...(password ? ['local'] : []), ...(user.azureAdId ? ['azure'] : [])],
     };
 
     return successResponse(transformedUser);
@@ -109,7 +106,14 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     const existingUser = await prisma.user.findUnique({
       where: { id },
-      select: { id: true, name: true, role: true, managerId: true, isActive: true, totpEnabled: true },
+      select: {
+        id: true,
+        name: true,
+        role: true,
+        managerId: true,
+        isActive: true,
+        totpEnabled: true,
+      },
     });
 
     if (!existingUser) {

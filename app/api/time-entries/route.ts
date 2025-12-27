@@ -27,17 +27,17 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId');
 
     // Regular users can only see their own entries
-    const targetUserId =
-      session.user.role === 'ADMIN' && userId ? userId : session.user.id;
+    const targetUserId = session.user.role === 'ADMIN' && userId ? userId : session.user.id;
 
     const where = {
       userId: targetUserId,
-      ...(startDate && endDate && {
-        date: {
-          gte: new Date(startDate),
-          lte: new Date(endDate),
-        },
-      }),
+      ...(startDate &&
+        endDate && {
+          date: {
+            gte: new Date(startDate),
+            lte: new Date(endDate),
+          },
+        }),
       ...(projectId && { projectId }),
     };
 
@@ -93,10 +93,7 @@ export async function POST(request: NextRequest) {
     const { session, error: authError } = await requireAuth();
     if (authError) return authError;
 
-    const { data, error: validationError } = await validateRequest(
-      request,
-      timeEntryCreateSchema
-    );
+    const { data, error: validationError } = await validateRequest(request, timeEntryCreateSchema);
     if (validationError) return validationError;
 
     // Find or create a DRAFT timesheet for this user

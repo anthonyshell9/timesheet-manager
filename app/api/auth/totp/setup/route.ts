@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 
     // TOTP is only for local accounts (those with passwords)
     if (!user.password) {
-      return errorResponse('MFA n\'est disponible que pour les comptes locaux', 400);
+      return errorResponse("MFA n'est disponible que pour les comptes locaux", 400);
     }
 
     if (user.totpEnabled) {

@@ -74,10 +74,7 @@ export async function GET(request: NextRequest) {
     const transformedUsers = users.map(({ password, ...user }) => ({
       ...user,
       hasLocalAuth: !!password,
-      authMethods: [
-        ...(password ? ['local'] : []),
-        ...(user.azureAdId ? ['azure'] : []),
-      ],
+      authMethods: [...(password ? ['local'] : []), ...(user.azureAdId ? ['azure'] : [])],
     }));
 
     return successResponse(transformedUsers, createPaginationMeta(page, limit, total));

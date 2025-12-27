@@ -161,7 +161,15 @@ function generateCSV(
   startDate: string,
   endDate: string
 ) {
-  const headers = ['Date', 'Projet', 'Code', 'Sous-projet', 'Description', 'Durée (h)', 'Facturable'];
+  const headers = [
+    'Date',
+    'Projet',
+    'Code',
+    'Sous-projet',
+    'Description',
+    'Durée (h)',
+    'Facturable',
+  ];
   const rows = entries.map((entry) => [
     format(new Date(entry.date), 'dd/MM/yyyy'),
     entry.project.name,
@@ -172,7 +180,10 @@ function generateCSV(
     entry.isBillable ? 'Oui' : 'Non',
   ]);
 
-  const csvContent = [headers.join(','), ...rows.map((row) => row.map((cell) => `"${cell}"`).join(','))].join('\n');
+  const csvContent = [
+    headers.join(','),
+    ...rows.map((row) => row.map((cell) => `"${cell}"`).join(',')),
+  ].join('\n');
 
   const filename = `rapport_${userName.replace(/\s+/g, '_')}_${format(new Date(startDate), 'yyyyMMdd')}_${format(new Date(endDate), 'yyyyMMdd')}.csv`;
 
@@ -354,7 +365,13 @@ function generatePDF(
         p.billableHours.toFixed(1),
         p.value.toFixed(2),
       ]),
-      ['TOTAL', '', totals.totalHours.toFixed(1), totals.totalBillableHours.toFixed(1), totals.totalValue.toFixed(2)],
+      [
+        'TOTAL',
+        '',
+        totals.totalHours.toFixed(1),
+        totals.totalBillableHours.toFixed(1),
+        totals.totalValue.toFixed(2),
+      ],
     ],
     headStyles: { fillColor: [59, 130, 246] },
     footStyles: { fillColor: [229, 231, 235], textColor: [0, 0, 0], fontStyle: 'bold' },

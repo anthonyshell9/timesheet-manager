@@ -175,10 +175,7 @@ export default function ProjectsPage() {
   const openProjectSheet = async (project: Project) => {
     setSelectedProject(project);
     setIsSheetOpen(true);
-    await Promise.all([
-      fetchProjectSubProjects(project.id),
-      fetchProjectGroups(project.id),
-    ]);
+    await Promise.all([fetchProjectSubProjects(project.id), fetchProjectGroups(project.id)]);
   };
 
   const handleSaveGroups = async () => {
@@ -197,7 +194,11 @@ export default function ProjectsPage() {
         toast({ title: 'Erreur', description: data.error, variant: 'destructive' });
       }
     } catch (error) {
-      toast({ title: 'Erreur', description: 'Erreur lors de la sauvegarde', variant: 'destructive' });
+      toast({
+        title: 'Erreur',
+        description: 'Erreur lors de la sauvegarde',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -232,7 +233,11 @@ export default function ProjectsPage() {
         toast({ title: 'Erreur', description: data.error, variant: 'destructive' });
       }
     } catch (error) {
-      toast({ title: 'Erreur', description: 'Erreur lors de la sauvegarde', variant: 'destructive' });
+      toast({
+        title: 'Erreur',
+        description: 'Erreur lors de la sauvegarde',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -241,10 +246,9 @@ export default function ProjectsPage() {
     if (!confirm('Supprimer ce sous-projet ?')) return;
 
     try {
-      const res = await fetch(
-        `/api/projects/${selectedProject.id}/subprojects/${subProjectId}`,
-        { method: 'DELETE' }
-      );
+      const res = await fetch(`/api/projects/${selectedProject.id}/subprojects/${subProjectId}`, {
+        method: 'DELETE',
+      });
       const data = await res.json();
       if (data.success) {
         toast({ title: 'Succès', description: data.data.message });
@@ -254,7 +258,11 @@ export default function ProjectsPage() {
         toast({ title: 'Erreur', description: data.error, variant: 'destructive' });
       }
     } catch (error) {
-      toast({ title: 'Erreur', description: 'Erreur lors de la suppression', variant: 'destructive' });
+      toast({
+        title: 'Erreur',
+        description: 'Erreur lors de la suppression',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -326,7 +334,7 @@ export default function ProjectsPage() {
     } catch (error) {
       toast({
         title: 'Erreur',
-        description: 'Erreur lors de l\'enregistrement',
+        description: "Erreur lors de l'enregistrement",
         variant: 'destructive',
       });
     }
@@ -362,7 +370,7 @@ export default function ProjectsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative flex-1 max-w-md">
+        <div className="relative max-w-md flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Rechercher un projet..."
@@ -374,7 +382,12 @@ export default function ProjectsPage() {
         {isAdmin && (
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button onClick={() => { setEditingProject(null); resetForm(); }}>
+              <Button
+                onClick={() => {
+                  setEditingProject(null);
+                  resetForm();
+                }}
+              >
                 <Plus className="mr-2 h-4 w-4" />
                 Nouveau projet
               </Button>
@@ -464,9 +477,7 @@ export default function ProjectsPage() {
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button type="submit">
-                    {editingProject ? 'Modifier' : 'Créer'}
-                  </Button>
+                  <Button type="submit">{editingProject ? 'Modifier' : 'Créer'}</Button>
                 </DialogFooter>
               </form>
             </DialogContent>
@@ -477,7 +488,7 @@ export default function ProjectsPage() {
       {/* Projects Grid */}
       {isLoading ? (
         <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
         </div>
       ) : filteredProjects.length === 0 ? (
         <Card>
@@ -506,9 +517,7 @@ export default function ProjectsPage() {
                       <CardDescription className="font-mono">{project.code}</CardDescription>
                     </div>
                     <div className="flex gap-1">
-                      {!project.isActive && (
-                        <Badge variant="secondary">Inactif</Badge>
-                      )}
+                      {!project.isActive && <Badge variant="secondary">Inactif</Badge>}
                       {project.isBillable && (
                         <Badge variant="outline" className="gap-1">
                           <DollarSign className="h-3 w-3" />
@@ -520,7 +529,7 @@ export default function ProjectsPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {project.description && (
-                    <p className="text-sm text-muted-foreground line-clamp-2">
+                    <p className="line-clamp-2 text-sm text-muted-foreground">
                       {project.description}
                     </p>
                   )}
@@ -547,7 +556,9 @@ export default function ProjectsPage() {
                   {project.hourlyRate && (
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">Taux horaire</span>
-                      <span className="font-medium">{Number(project.hourlyRate).toFixed(2)} EUR</span>
+                      <span className="font-medium">
+                        {Number(project.hourlyRate).toFixed(2)} EUR
+                      </span>
                     </div>
                   )}
 
@@ -564,7 +575,7 @@ export default function ProjectsPage() {
                       <UsersRound className="h-4 w-4" />
                       Groupes
                     </span>
-                    <div className="flex gap-1 flex-wrap justify-end">
+                    <div className="flex flex-wrap justify-end gap-1">
                       {project.groups.length > 0 ? (
                         project.groups.slice(0, 2).map(({ group }) => (
                           <Badge
@@ -588,7 +599,7 @@ export default function ProjectsPage() {
                   </div>
 
                   {isAdmin && (
-                    <div className="flex justify-end gap-2 pt-2 border-t">
+                    <div className="flex justify-end gap-2 border-t pt-2">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -636,10 +647,8 @@ export default function ProjectsPage() {
             </TabsList>
 
             <TabsContent value="subprojects" className="mt-4 space-y-4">
-              <div className="flex justify-between items-center">
-                <p className="text-sm text-muted-foreground">
-                  Gérez les sous-projets de ce projet
-                </p>
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">Gérez les sous-projets de ce projet</p>
                 <Dialog open={isSubProjectDialogOpen} onOpenChange={setIsSubProjectDialogOpen}>
                   <DialogTrigger asChild>
                     <Button
@@ -696,9 +705,7 @@ export default function ProjectsPage() {
                         </div>
                       </div>
                       <DialogFooter>
-                        <Button type="submit">
-                          {editingSubProject ? 'Modifier' : 'Créer'}
-                        </Button>
+                        <Button type="submit">{editingSubProject ? 'Modifier' : 'Créer'}</Button>
                       </DialogFooter>
                     </form>
                   </DialogContent>
@@ -707,18 +714,16 @@ export default function ProjectsPage() {
 
               <ScrollArea className="h-[400px]">
                 {projectSubProjects.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    Aucun sous-projet
-                  </div>
+                  <div className="py-8 text-center text-muted-foreground">Aucun sous-projet</div>
                 ) : (
                   <div className="space-y-2">
                     {projectSubProjects.map((sp) => (
                       <div
                         key={sp.id}
-                        className="flex items-center justify-between p-3 rounded-lg border"
+                        className="flex items-center justify-between rounded-lg border p-3"
                       >
                         <div>
-                          <div className="font-medium flex items-center gap-2">
+                          <div className="flex items-center gap-2 font-medium">
                             {sp.name}
                             {!sp.isActive && (
                               <Badge variant="secondary" className="text-xs">
@@ -727,9 +732,7 @@ export default function ProjectsPage() {
                             )}
                           </div>
                           {sp.code && (
-                            <div className="text-sm text-muted-foreground font-mono">
-                              {sp.code}
-                            </div>
+                            <div className="font-mono text-sm text-muted-foreground">{sp.code}</div>
                           )}
                           {sp.spentHours !== undefined && (
                             <div className="text-sm text-muted-foreground">
@@ -767,7 +770,7 @@ export default function ProjectsPage() {
 
               <ScrollArea className="h-[350px]">
                 {allGroups.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
+                  <div className="py-8 text-center text-muted-foreground">
                     Aucun groupe disponible
                   </div>
                 ) : (
@@ -775,7 +778,7 @@ export default function ProjectsPage() {
                     {allGroups.map((group) => (
                       <div
                         key={group.id}
-                        className="flex items-center space-x-3 p-3 rounded-lg border"
+                        className="flex items-center space-x-3 rounded-lg border p-3"
                       >
                         <Checkbox
                           id={`group-${group.id}`}
@@ -784,16 +787,14 @@ export default function ProjectsPage() {
                             if (checked) {
                               setSelectedGroupIds([...selectedGroupIds, group.id]);
                             } else {
-                              setSelectedGroupIds(
-                                selectedGroupIds.filter((id) => id !== group.id)
-                              );
+                              setSelectedGroupIds(selectedGroupIds.filter((id) => id !== group.id));
                             }
                           }}
                         />
                         <div className="flex-1">
                           <label
                             htmlFor={`group-${group.id}`}
-                            className="font-medium cursor-pointer flex items-center gap-2"
+                            className="flex cursor-pointer items-center gap-2 font-medium"
                           >
                             <div
                               className="h-3 w-3 rounded-full"

@@ -86,36 +86,48 @@ export default function ReportsPage() {
           let totalHours = 0;
           let totalBillableHours = 0;
 
-          entries.forEach((entry: { project: { id: string; name: string; code: string; color: string; hourlyRate?: number }; duration: number; isBillable: boolean }) => {
-            const hours = entry.duration / 60;
-            totalHours += hours;
-
-            if (entry.isBillable) {
-              totalBillableHours += hours;
-            }
-
-            let project = projectMap[entry.project.id];
-            if (!project) {
-              project = {
-                projectId: entry.project.id,
-                projectName: entry.project.name,
-                projectCode: entry.project.code,
-                color: entry.project.color,
-                hours: 0,
-                billableHours: 0,
-                value: 0,
+          entries.forEach(
+            (entry: {
+              project: {
+                id: string;
+                name: string;
+                code: string;
+                color: string;
+                hourlyRate?: number;
               };
-              projectMap[entry.project.id] = project;
-            }
+              duration: number;
+              isBillable: boolean;
+            }) => {
+              const hours = entry.duration / 60;
+              totalHours += hours;
 
-            project.hours += hours;
-            if (entry.isBillable) {
-              project.billableHours += hours;
-              // Assume 150 EUR/hour if no rate specified
-              const rate = entry.project.hourlyRate || 150;
-              project.value += hours * rate;
+              if (entry.isBillable) {
+                totalBillableHours += hours;
+              }
+
+              let project = projectMap[entry.project.id];
+              if (!project) {
+                project = {
+                  projectId: entry.project.id,
+                  projectName: entry.project.name,
+                  projectCode: entry.project.code,
+                  color: entry.project.color,
+                  hours: 0,
+                  billableHours: 0,
+                  value: 0,
+                };
+                projectMap[entry.project.id] = project;
+              }
+
+              project.hours += hours;
+              if (entry.isBillable) {
+                project.billableHours += hours;
+                // Assume 150 EUR/hour if no rate specified
+                const rate = entry.project.hourlyRate || 150;
+                project.value += hours * rate;
+              }
             }
-          });
+          );
 
           const projectBreakdown = Object.values(projectMap).sort((a, b) => b.hours - a.hours);
           const totalValue = projectBreakdown.reduce((acc, p) => acc + p.value, 0);
@@ -264,7 +276,7 @@ export default function ReportsPage() {
             </Select>
 
             {/* Export buttons */}
-            <div className="flex gap-2 ml-auto">
+            <div className="ml-auto flex gap-2">
               <Button variant="outline" size="sm" onClick={() => handleExport('csv')}>
                 <Download className="mr-2 h-4 w-4" />
                 CSV
@@ -335,29 +347,26 @@ export default function ReportsPage() {
         <CardContent>
           {isLoading ? (
             <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
             </div>
           ) : !reportData || reportData.projectBreakdown.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">
+            <p className="py-8 text-center text-muted-foreground">
               Aucune donnée pour cette période
             </p>
           ) : (
             <div className="space-y-4">
               {reportData.projectBreakdown.map((project) => (
                 <div key={project.projectId} className="flex items-center gap-4">
-                  <div
-                    className="h-4 w-4 rounded"
-                    style={{ backgroundColor: project.color }}
-                  />
+                  <div className="h-4 w-4 rounded" style={{ backgroundColor: project.color }} />
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
                       <div>
                         <span className="font-medium">{project.projectName}</span>
-                        <span className="text-muted-foreground ml-2">({project.projectCode})</span>
+                        <span className="ml-2 text-muted-foreground">({project.projectCode})</span>
                       </div>
                       <div className="flex items-center gap-4">
                         <Badge variant="outline">{project.hours.toFixed(1)}h</Badge>
-                        <span className="text-sm text-muted-foreground w-24 text-right">
+                        <span className="w-24 text-right text-sm text-muted-foreground">
                           {project.value.toLocaleString('fr-FR', {
                             style: 'currency',
                             currency: 'EUR',

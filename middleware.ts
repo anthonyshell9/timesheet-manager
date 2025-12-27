@@ -11,8 +11,7 @@ export default withAuth(
     const isSignInPage = pathname === '/auth/signin';
     const isSignOutPage = pathname === '/auth/signout';
     const isApiRoute = pathname.startsWith('/api');
-    const isPublicApiRoute =
-      pathname === '/api/health' || pathname === '/api/docs';
+    const isPublicApiRoute = pathname === '/api/health' || pathname === '/api/docs';
     const isTOTPApiRoute = pathname.startsWith('/api/auth/totp');
 
     // Allow public API routes
@@ -22,10 +21,7 @@ export default withAuth(
 
     // Return JSON 401 for unauthenticated API requests
     if (isApiRoute && !token && !isTOTPApiRoute) {
-      return NextResponse.json(
-        { success: false, error: 'Non authentifié' },
-        { status: 401 }
-      );
+      return NextResponse.json({ success: false, error: 'Non authentifié' }, { status: 401 });
     }
 
     // If user is authenticated
@@ -128,8 +124,7 @@ export default withAuth(
         const isAuthPage = pathname.startsWith('/auth');
         const isPublicPage = pathname === '/';
         const isApiRoute = pathname.startsWith('/api');
-        const isPublicApiRoute =
-          pathname === '/api/health' || pathname === '/api/docs';
+        const isPublicApiRoute = pathname === '/api/health' || pathname === '/api/docs';
 
         // Allow public pages and auth pages without authentication
         if (isAuthPage || isPublicPage || isPublicApiRoute) {

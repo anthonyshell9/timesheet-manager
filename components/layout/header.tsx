@@ -39,9 +39,9 @@ export function Header() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  const pageTitle = Object.entries(pageTitles).find(([path]) =>
-    pathname.startsWith(path)
-  )?.[1] || 'TimeSheet Manager';
+  const pageTitle =
+    Object.entries(pageTitles).find(([path]) => pathname.startsWith(path))?.[1] ||
+    'TimeSheet Manager';
 
   useEffect(() => {
     // Fetch notifications
@@ -64,9 +64,7 @@ export function Header() {
   const markAsRead = async (id: string) => {
     try {
       await fetch(`/api/notifications/${id}/read`, { method: 'POST' });
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
-      );
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
       setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
@@ -83,11 +81,7 @@ export function Header() {
         {/* Search */}
         <div className="relative hidden md:block">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Rechercher..."
-            className="w-64 pl-9"
-          />
+          <Input type="search" placeholder="Rechercher..." className="w-64 pl-9" />
         </div>
 
         {/* Notifications */}
@@ -108,9 +102,7 @@ export function Header() {
           <DropdownMenuContent align="end" className="w-80">
             <DropdownMenuLabel className="flex items-center justify-between">
               Notifications
-              {unreadCount > 0 && (
-                <Badge variant="secondary">{unreadCount} non lue(s)</Badge>
-              )}
+              {unreadCount > 0 && <Badge variant="secondary">{unreadCount} non lue(s)</Badge>}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             {notifications.length === 0 ? (
@@ -126,7 +118,7 @@ export function Header() {
                 >
                   <div className="flex flex-col gap-1">
                     <span className="font-medium">{notification.title}</span>
-                    <span className="text-xs text-muted-foreground line-clamp-2">
+                    <span className="line-clamp-2 text-xs text-muted-foreground">
                       {notification.message}
                     </span>
                     <span className="text-xs text-muted-foreground">

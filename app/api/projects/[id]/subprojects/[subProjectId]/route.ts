@@ -29,10 +29,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       return notFoundResponse('Sous-projet');
     }
 
-    const { data, error: validationError } = await validateRequest(
-      request,
-      subProjectUpdateSchema
-    );
+    const { data, error: validationError } = await validateRequest(request, subProjectUpdateSchema);
     if (validationError) return validationError;
 
     const subProject = await prisma.subProject.update({

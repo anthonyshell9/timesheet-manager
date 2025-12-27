@@ -205,9 +205,7 @@ export default function TimesheetsPage() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <CardTitle>Mes feuilles de temps</CardTitle>
-              <CardDescription>
-                Gérez et soumettez vos feuilles de temps
-              </CardDescription>
+              <CardDescription>Gérez et soumettez vos feuilles de temps</CardDescription>
             </div>
             <div className="flex gap-2">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -232,13 +230,15 @@ export default function TimesheetsPage() {
         <CardContent>
           {isLoading ? (
             <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
             </div>
           ) : filteredTimesheets.length === 0 ? (
-            <div className="text-center py-8">
+            <div className="py-8 text-center">
               <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
               <h3 className="mt-4 text-lg font-medium">
-                {statusFilter === 'all' ? 'Aucune feuille de temps' : 'Aucune feuille avec ce statut'}
+                {statusFilter === 'all'
+                  ? 'Aucune feuille de temps'
+                  : 'Aucune feuille avec ce statut'}
               </h3>
               <p className="text-muted-foreground">
                 {statusFilter === 'all'
@@ -272,10 +272,14 @@ export default function TimesheetsPage() {
                     <TableRow key={timesheet.id}>
                       <TableCell>
                         <div className="font-medium">
-                          {timesheet.name || `Feuille du ${format(new Date(timesheet.createdAt), 'd MMM yyyy', { locale: fr })}`}
+                          {timesheet.name ||
+                            `Feuille du ${format(new Date(timesheet.createdAt), 'd MMM yyyy', { locale: fr })}`}
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          Créée le {format(new Date(timesheet.createdAt), 'd MMM yyyy HH:mm', { locale: fr })}
+                          Créée le{' '}
+                          {format(new Date(timesheet.createdAt), 'd MMM yyyy HH:mm', {
+                            locale: fr,
+                          })}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -285,7 +289,9 @@ export default function TimesheetsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <span className="font-medium">{Number(timesheet.totalHours).toFixed(1)}h</span>
+                        <span className="font-medium">
+                          {Number(timesheet.totalHours).toFixed(1)}h
+                        </span>
                       </TableCell>
                       <TableCell>{timesheet._count.timeEntries}</TableCell>
                       <TableCell>

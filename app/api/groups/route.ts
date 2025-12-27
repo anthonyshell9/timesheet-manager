@@ -54,7 +54,10 @@ export async function GET(request: NextRequest) {
 const createGroupSchema = z.object({
   name: z.string().min(1, 'Nom requis').max(100),
   description: z.string().max(500).optional(),
-  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+  color: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/)
+    .optional(),
   memberIds: z.array(z.string()).optional(),
 });
 
@@ -97,7 +100,11 @@ export async function POST(request: NextRequest) {
     });
 
     await logCrudOperation('CREATE', 'UserGroup', group.id, {
-      details: { name: data.name, memberCount: data.memberIds?.length || 0, performedBy: session.user.id },
+      details: {
+        name: data.name,
+        memberCount: data.memberIds?.length || 0,
+        performedBy: session.user.id,
+      },
     });
 
     return successResponse(group);

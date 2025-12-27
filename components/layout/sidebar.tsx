@@ -155,9 +155,7 @@ export function Sidebar() {
                 title={collapsed ? item.name : undefined}
               >
                 <item.icon className="h-5 w-5 flex-shrink-0" />
-                {!collapsed && (
-                  <span className="flex-1">{item.name}</span>
-                )}
+                {!collapsed && <span className="flex-1">{item.name}</span>}
                 {!collapsed && badgeCount > 0 && (
                   <Badge
                     variant={isActive ? 'secondary' : 'destructive'}
@@ -167,7 +165,7 @@ export function Sidebar() {
                   </Badge>
                 )}
                 {collapsed && badgeCount > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] text-destructive-foreground">
+                  <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] text-destructive-foreground">
                     {badgeCount > 9 ? '9+' : badgeCount}
                   </span>
                 )}
@@ -186,11 +184,7 @@ export function Sidebar() {
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
           className={cn('mb-2 w-full', collapsed && 'px-2')}
         >
-          {theme === 'dark' ? (
-            <Sun className="h-5 w-5" />
-          ) : (
-            <Moon className="h-5 w-5" />
-          )}
+          {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           {!collapsed && (
             <span className="ml-2">{theme === 'dark' ? 'Mode clair' : 'Mode sombre'}</span>
           )}
@@ -201,10 +195,7 @@ export function Sidebar() {
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              className={cn(
-                'w-full justify-start gap-2',
-                collapsed && 'justify-center px-2'
-              )}
+              className={cn('w-full justify-start gap-2', collapsed && 'justify-center px-2')}
             >
               <Avatar className="h-8 w-8">
                 <AvatarImage src={session?.user?.image || undefined} />
@@ -214,7 +205,7 @@ export function Sidebar() {
               </Avatar>
               {!collapsed && (
                 <div className="flex flex-1 flex-col items-start text-left">
-                  <span className="text-sm font-medium truncate max-w-[140px]">
+                  <span className="max-w-[140px] truncate text-sm font-medium">
                     {session?.user?.name || 'Utilisateur'}
                   </span>
                   <Badge variant="secondary" className="text-xs">

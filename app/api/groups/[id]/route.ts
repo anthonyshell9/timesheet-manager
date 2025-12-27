@@ -57,7 +57,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 const updateGroupSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   description: z.string().max(500).optional().nullable(),
-  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+  color: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/)
+    .optional(),
   isActive: z.boolean().optional(),
   memberIds: z.array(z.string()).optional(),
 });

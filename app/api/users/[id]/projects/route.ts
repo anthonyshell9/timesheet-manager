@@ -108,7 +108,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       }
 
       await logCrudOperation('UPDATE', 'ProjectMember', id, {
-        details: { action: 'ASSIGN_PROJECTS', projectIds: data.assignedProjectIds, performedBy: session.user.id },
+        details: {
+          action: 'ASSIGN_PROJECTS',
+          projectIds: data.assignedProjectIds,
+          performedBy: session.user.id,
+        },
       });
     }
 
@@ -130,7 +134,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       }
 
       await logCrudOperation('UPDATE', 'ProjectValidator', id, {
-        details: { action: 'ASSIGN_VALIDATOR', projectIds: data.validatingProjectIds, performedBy: session.user.id },
+        details: {
+          action: 'ASSIGN_VALIDATOR',
+          projectIds: data.validatingProjectIds,
+          performedBy: session.user.id,
+        },
       });
     }
 

@@ -52,10 +52,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // Check for time entries
     if (timesheet.timeEntries.length === 0) {
-      return errorResponse(
-        'Impossible de soumettre une feuille de temps vide',
-        400
-      );
+      return errorResponse('Impossible de soumettre une feuille de temps vide', 400);
     }
 
     // Create integrity hash

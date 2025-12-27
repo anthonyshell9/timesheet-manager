@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireAuth, successResponse, errorResponse, serverErrorResponse, validateRequest } from '@/lib/api-utils';
+import {
+  requireAuth,
+  successResponse,
+  errorResponse,
+  serverErrorResponse,
+  validateRequest,
+} from '@/lib/api-utils';
 import { verifyTOTP } from '@/lib/totp';
 import { z } from 'zod';
 import { getToken } from 'next-auth/jwt';
@@ -35,7 +41,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!user.totpEnabled || !user.totpSecret) {
-      return errorResponse('TOTP n\'est pas activé pour ce compte', 400);
+      return errorResponse("TOTP n'est pas activé pour ce compte", 400);
     }
 
     // Verify the token
@@ -52,7 +58,7 @@ export async function POST(request: NextRequest) {
     // Return success - the client will trigger a session update
     return successResponse({
       verified: true,
-      message: 'Authentification réussie'
+      message: 'Authentification réussie',
     });
   } catch (error) {
     return serverErrorResponse(error);
