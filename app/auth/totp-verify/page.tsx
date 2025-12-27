@@ -55,8 +55,8 @@ function TOTPVerifyContent() {
       // Update session to mark TOTP as verified
       await update({ totpVerified: true });
 
-      // Redirect to callback URL
-      router.push(callbackUrl);
+      // Force a full page reload to ensure the middleware sees the updated token
+      window.location.href = callbackUrl;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de vérification');
       setVerificationCode('');
