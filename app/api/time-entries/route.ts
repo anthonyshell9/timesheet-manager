@@ -96,15 +96,28 @@ export async function POST(request: NextRequest) {
     const { data, error: validationError } = await validateRequest(request, timeEntryCreateSchema);
     if (validationError) return validationError;
 
-    // Find or create a DRAFT timesheet for this user
+    // Find an existing REOPENED or DRAFT timesheet for this user
+    // Prioritize REOPENED timesheets (user is actively editing after reopen)
     let timesheet = await prisma.timeSheet.findFirst({
       where: {
         userId: session.user.id,
-        status: 'DRAFT',
+        status: 'REOPENED',
       },
       orderBy: { createdAt: 'desc' },
     });
 
+    // If no REOPENED timesheet, look for a DRAFT
+    if (!timesheet) {
+      timesheet = await prisma.timeSheet.findFirst({
+        where: {
+          userId: session.user.id,
+          status: 'DRAFT',
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+    }
+
+    // If no existing timesheet, create a new DRAFT
     if (!timesheet) {
       timesheet = await prisma.timeSheet.create({
         data: {
