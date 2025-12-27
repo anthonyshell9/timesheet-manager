@@ -61,6 +61,9 @@ export default function TimeEntryPage() {
   const [minutes, setMinutes] = useState('');
   const [description, setDescription] = useState('');
 
+  // Validation state
+  const [errors, setErrors] = useState<{ project?: string; duration?: string }>({});
+
   const selectedProject = projects.find((p) => p.id === projectId);
 
   // Fetch projects
@@ -98,26 +101,31 @@ export default function TimeEntryPage() {
   }, [fetchEntries]);
 
   const handleQuickAdd = async (durationMinutes: number) => {
+    const newErrors: { project?: string; duration?: string } = {};
+
     if (!projectId) {
+      newErrors.project = 'Veuillez sélectionner un projet';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       toast({
         title: 'Erreur',
-        description: 'Sélectionnez un projet',
+        description: 'Veuillez corriger les erreurs',
         variant: 'destructive',
       });
       return;
     }
 
+    setErrors({});
     await saveTimeEntry(durationMinutes);
   };
 
   const handleManualAdd = async () => {
+    const newErrors: { project?: string; duration?: string } = {};
+
     if (!projectId) {
-      toast({
-        title: 'Erreur',
-        description: 'Sélectionnez un projet',
-        variant: 'destructive',
-      });
-      return;
+      newErrors.project = 'Veuillez sélectionner un projet';
     }
 
     const h = parseInt(hours) || 0;
@@ -125,14 +133,20 @@ export default function TimeEntryPage() {
     const duration = h * 60 + m;
 
     if (duration <= 0) {
+      newErrors.duration = 'La durée doit être supérieure à 0';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       toast({
         title: 'Erreur',
-        description: 'La durée doit être positive',
+        description: 'Veuillez corriger les erreurs',
         variant: 'destructive',
       });
       return;
     }
 
+    setErrors({});
     await saveTimeEntry(duration);
   };
 
@@ -263,13 +277,16 @@ export default function TimeEntryPage() {
               onValueChange={(val) => {
                 setProjectId(val);
                 setSubProjectId('');
+                if (errors.project) setErrors((prev) => ({ ...prev, project: undefined }));
               }}
             >
-              <SelectTrigger>
+              <SelectTrigger className={errors.project ? 'border-destructive' : ''}>
                 <SelectValue placeholder="Choisir un projet" />
               </SelectTrigger>
               <SelectContent>
-                {projects.map((project) => (
+                {projects
+                  .filter((project) => project.id && project.id.trim() !== '')
+                  .map((project) => (
                   <SelectItem key={project.id} value={project.id}>
                     <div className="flex items-center gap-2">
                       <div
@@ -282,19 +299,27 @@ export default function TimeEntryPage() {
                 ))}
               </SelectContent>
             </Select>
+            {errors.project && (
+              <p className="text-sm text-destructive">{errors.project}</p>
+            )}
           </div>
 
           {/* Sub-project Selection */}
           {selectedProject && selectedProject.subProjects.length > 0 && (
             <div className="space-y-2">
               <Label>Sous-projet</Label>
-              <Select value={subProjectId} onValueChange={setSubProjectId}>
+              <Select
+                value={subProjectId || 'none'}
+                onValueChange={(val) => setSubProjectId(val === 'none' ? '' : val)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Optionnel" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Aucun</SelectItem>
-                  {selectedProject.subProjects.map((sp) => (
+                  <SelectItem value="none">Aucun</SelectItem>
+                  {selectedProject.subProjects
+                    .filter((sp) => sp.id && sp.id.trim() !== '')
+                    .map((sp) => (
                     <SelectItem key={sp.id} value={sp.id}>
                       {sp.name}
                     </SelectItem>
@@ -335,16 +360,19 @@ export default function TimeEntryPage() {
 
           {/* Manual Duration */}
           <div className="space-y-2">
-            <Label>Ou saisir une durée</Label>
+            <Label>Ou saisir une durée *</Label>
             <div className="flex items-center gap-2">
               <Input
                 type="number"
                 min="0"
                 max="23"
                 value={hours}
-                onChange={(e) => setHours(e.target.value)}
+                onChange={(e) => {
+                  setHours(e.target.value);
+                  if (errors.duration) setErrors((prev) => ({ ...prev, duration: undefined }));
+                }}
                 placeholder="0"
-                className="w-20 text-center"
+                className={`w-20 text-center ${errors.duration ? 'border-destructive' : ''}`}
               />
               <span className="text-muted-foreground">h</span>
               <Input
@@ -352,15 +380,21 @@ export default function TimeEntryPage() {
                 min="0"
                 max="59"
                 value={minutes}
-                onChange={(e) => setMinutes(e.target.value)}
+                onChange={(e) => {
+                  setMinutes(e.target.value);
+                  if (errors.duration) setErrors((prev) => ({ ...prev, duration: undefined }));
+                }}
                 placeholder="00"
-                className="w-20 text-center"
+                className={`w-20 text-center ${errors.duration ? 'border-destructive' : ''}`}
               />
               <span className="text-muted-foreground">min</span>
-              <Button onClick={handleManualAdd} disabled={isLoading || !projectId}>
+              <Button onClick={handleManualAdd} disabled={isLoading}>
                 Ajouter
               </Button>
             </div>
+            {errors.duration && (
+              <p className="text-sm text-destructive">{errors.duration}</p>
+            )}
           </div>
         </CardContent>
       </Card>

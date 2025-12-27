@@ -1,6 +1,6 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Bell, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { useState, useEffect } from 'react';
+import { useToast } from '@/components/ui/use-toast';
 
 const pageTitles: Record<string, string> = {
   '/dashboard': 'Tableau de bord',
@@ -36,12 +37,35 @@ interface Notification {
 
 export function Header() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { toast } = useToast();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const pageTitle =
     Object.entries(pageTitles).find(([path]) => pathname.startsWith(path))?.[1] ||
     'TimeSheet Manager';
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      // Redirect to projects page with search query
+      router.push(`/projects?search=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchQuery('');
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      await fetch('/api/notifications/read-all', { method: 'POST' });
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      setUnreadCount(0);
+      toast({ title: 'Toutes les notifications ont été marquées comme lues' });
+    } catch (error) {
+      console.error('Failed to mark all as read:', error);
+    }
+  };
 
   useEffect(() => {
     // Fetch notifications
@@ -79,10 +103,16 @@ export function Header() {
 
       <div className="flex items-center gap-4">
         {/* Search */}
-        <div className="relative hidden md:block">
+        <form onSubmit={handleSearch} className="relative hidden md:block">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input type="search" placeholder="Rechercher..." className="w-64 pl-9" />
-        </div>
+          <Input
+            type="search"
+            placeholder="Rechercher un projet..."
+            className="w-64 pl-9"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </form>
 
         {/* Notifications */}
         <DropdownMenu>
@@ -133,10 +163,18 @@ export function Header() {
                 </DropdownMenuItem>
               ))
             )}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="justify-center text-primary">
-              Voir toutes les notifications
-            </DropdownMenuItem>
+            {notifications.length > 0 && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="justify-center text-primary cursor-pointer"
+                  onClick={handleMarkAllAsRead}
+                  disabled={unreadCount === 0}
+                >
+                  {unreadCount > 0 ? 'Tout marquer comme lu' : 'Aucune notification non lue'}
+                </DropdownMenuItem>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

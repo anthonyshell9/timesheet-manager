@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
+import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -79,12 +80,13 @@ interface Project {
   _count: { timeEntries: number };
 }
 
-export default function ProjectsPage() {
+function ProjectsContent() {
   const { data: session } = useSession();
   const { toast } = useToast();
+  const searchParams = useSearchParams();
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(searchParams.get('search') || '');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
 
@@ -114,6 +116,9 @@ export default function ProjectsPage() {
     isBillable: true,
     color: '#3B82F6',
   });
+
+  // Validation state
+  const [formErrors, setFormErrors] = useState<{ name?: string; code?: string }>({});
 
   const isAdmin = session?.user?.role === 'ADMIN';
 
@@ -285,6 +290,22 @@ export default function ProjectsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validate form
+    const errors: { name?: string; code?: string } = {};
+    if (!formData.name.trim()) {
+      errors.name = 'Le nom est obligatoire';
+    }
+    if (!formData.code.trim()) {
+      errors.code = 'Le code est obligatoire';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+
+    setFormErrors({});
+
     const payload = {
       name: formData.name,
       code: formData.code.toUpperCase(),
@@ -364,6 +385,7 @@ export default function ProjectsPage() {
       isBillable: true,
       color: '#3B82F6',
     });
+    setFormErrors({});
   };
 
   return (
@@ -410,20 +432,30 @@ export default function ProjectsPage() {
                       <Label>Nom *</Label>
                       <Input
                         value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        required
+                        onChange={(e) => {
+                          setFormData({ ...formData, name: e.target.value });
+                          if (formErrors.name) setFormErrors((prev) => ({ ...prev, name: undefined }));
+                        }}
+                        className={formErrors.name ? 'border-destructive' : ''}
                       />
+                      {formErrors.name && (
+                        <p className="text-sm text-destructive">{formErrors.name}</p>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label>Code *</Label>
                       <Input
                         value={formData.code}
-                        onChange={(e) =>
-                          setFormData({ ...formData, code: e.target.value.toUpperCase() })
-                        }
+                        onChange={(e) => {
+                          setFormData({ ...formData, code: e.target.value.toUpperCase() });
+                          if (formErrors.code) setFormErrors((prev) => ({ ...prev, code: undefined }));
+                        }}
                         placeholder="EX: PROJ-001"
-                        required
+                        className={formErrors.code ? 'border-destructive' : ''}
                       />
+                      {formErrors.code && (
+                        <p className="text-sm text-destructive">{formErrors.code}</p>
+                      )}
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -825,5 +857,19 @@ export default function ProjectsPage() {
         </SheetContent>
       </Sheet>
     </div>
+  );
+}
+
+export default function ProjectsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex justify-center py-12">
+          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
+        </div>
+      }
+    >
+      <ProjectsContent />
+    </Suspense>
   );
 }

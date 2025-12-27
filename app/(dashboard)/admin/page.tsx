@@ -100,6 +100,9 @@ export default function AdminPage() {
     authMethod: 'azure' as 'azure' | 'local' | 'both',
     password: '',
   });
+
+  // Validation state
+  const [formErrors, setFormErrors] = useState<{ name?: string; email?: string }>({});
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectDialogOpen, setProjectDialogOpen] = useState(false);
   const [projectDialogUser, setProjectDialogUser] = useState<User | null>(null);
@@ -343,6 +346,24 @@ export default function AdminPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validate form
+    const errors: { name?: string; email?: string } = {};
+    if (!formData.name.trim()) {
+      errors.name = 'Le nom est obligatoire';
+    }
+    if (!editingUser && !formData.email.trim()) {
+      errors.email = "L'email est obligatoire";
+    } else if (!editingUser && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      errors.email = "L'email n'est pas valide";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+
+    setFormErrors({});
+
     try {
       const url = editingUser ? `/api/users/${editingUser.id}` : '/api/users';
       const method = editingUser ? 'PATCH' : 'POST';
@@ -459,6 +480,7 @@ export default function AdminPage() {
       authMethod: 'azure',
       password: '',
     });
+    setFormErrors({});
   };
 
   const validators = users.filter((u) => u.role === 'VALIDATOR' || u.role === 'ADMIN');
@@ -568,19 +590,31 @@ export default function AdminPage() {
                           <Label>Nom *</Label>
                           <Input
                             value={formData.name}
-                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            required
+                            onChange={(e) => {
+                              setFormData({ ...formData, name: e.target.value });
+                              if (formErrors.name) setFormErrors((prev) => ({ ...prev, name: undefined }));
+                            }}
+                            className={formErrors.name ? 'border-destructive' : ''}
                           />
+                          {formErrors.name && (
+                            <p className="text-sm text-destructive">{formErrors.name}</p>
+                          )}
                         </div>
                         <div className="space-y-2">
                           <Label>Email *</Label>
                           <Input
                             type="email"
                             value={formData.email}
-                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                            required
+                            onChange={(e) => {
+                              setFormData({ ...formData, email: e.target.value });
+                              if (formErrors.email) setFormErrors((prev) => ({ ...prev, email: undefined }));
+                            }}
                             disabled={!!editingUser}
+                            className={formErrors.email ? 'border-destructive' : ''}
                           />
+                          {formErrors.email && (
+                            <p className="text-sm text-destructive">{formErrors.email}</p>
+                          )}
                         </div>
                         <div className="space-y-2">
                           <Label>Rôle</Label>

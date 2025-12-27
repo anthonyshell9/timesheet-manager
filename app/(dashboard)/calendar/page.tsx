@@ -103,17 +103,29 @@ export default function CalendarPage() {
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+                  onClick={() => {
+                    setCurrentMonth(subMonths(currentMonth, 1));
+                    setSelectedDate(null);
+                  }}
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" onClick={() => setCurrentMonth(new Date())}>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setCurrentMonth(new Date());
+                    setSelectedDate(new Date());
+                  }}
+                >
                   Aujourd'hui
                 </Button>
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+                  onClick={() => {
+                    setCurrentMonth(addMonths(currentMonth, 1));
+                    setSelectedDate(null);
+                  }}
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
