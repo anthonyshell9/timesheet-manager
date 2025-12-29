@@ -15,9 +15,16 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
-import { Clock, Plus, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Clock, Plus, Trash2, ChevronLeft, ChevronRight, CalendarIcon } from 'lucide-react';
 import { format, addDays, subDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 interface Project {
   id: string;
@@ -60,6 +67,8 @@ export default function TimeEntryPage() {
   const [hours, setHours] = useState('');
   const [minutes, setMinutes] = useState('');
   const [description, setDescription] = useState('');
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
 
   // Validation state
   const [errors, setErrors] = useState<{ project?: string; duration?: string }>({});
@@ -162,6 +171,8 @@ export default function TimeEntryPage() {
           subProjectId: subProjectId || undefined,
           duration,
           description: description || undefined,
+          startTime: startTime || undefined,
+          endTime: endTime || undefined,
           isBillable: true,
           isTimerEntry: false,
         }),
@@ -174,6 +185,8 @@ export default function TimeEntryPage() {
         setHours('');
         setMinutes('');
         setDescription('');
+        setStartTime('');
+        setEndTime('');
         fetchEntries();
       } else {
         toast({
@@ -232,21 +245,41 @@ export default function TimeEntryPage() {
       {/* Date Navigation */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <Button variant="outline" size="icon" onClick={goToPreviousDay}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
 
-            <div className="text-center">
-              <div className="text-lg font-semibold">
-                {format(selectedDate, 'EEEE d MMMM yyyy', { locale: fr })}
-              </div>
+            <div className="flex flex-col items-center gap-1">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      'justify-start text-left font-semibold',
+                      !selectedDate && 'text-muted-foreground'
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {format(selectedDate, 'EEEE d MMMM yyyy', { locale: fr })}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="center">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={(date) => date && setSelectedDate(date)}
+                    locale={fr}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
               {!isToday && (
                 <Button
                   variant="link"
                   size="sm"
                   onClick={goToToday}
-                  className="text-muted-foreground"
+                  className="h-auto p-0 text-muted-foreground"
                 >
                   Retour à aujourd'hui
                 </Button>
@@ -340,6 +373,33 @@ export default function TimeEntryPage() {
             />
           </div>
 
+          {/* Optional Time Range */}
+          <div className="space-y-2">
+            <Label>Horaires (optionnel)</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                className="w-32"
+                placeholder="Début"
+              />
+              <span className="text-muted-foreground">à</span>
+              <Input
+                type="time"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                className="w-32"
+                placeholder="Fin"
+              />
+              {startTime && endTime && (
+                <span className="text-sm text-muted-foreground">
+                  (pour référence uniquement)
+                </span>
+              )}
+            </div>
+          </div>
+
           {/* Quick Duration Buttons */}
           <div className="space-y-2">
             <Label>Durée rapide</Label>
@@ -360,7 +420,7 @@ export default function TimeEntryPage() {
 
           {/* Manual Duration */}
           <div className="space-y-2">
-            <Label>Ou saisir une durée *</Label>
+            <Label>Ou saisir une durée</Label>
             <div className="flex items-center gap-2">
               <Input
                 type="number"
@@ -439,6 +499,11 @@ export default function TimeEntryPage() {
                       {entry.description && (
                         <div className="line-clamp-1 text-sm text-muted-foreground">
                           {entry.description}
+                        </div>
+                      )}
+                      {entry.startTime && entry.endTime && (
+                        <div className="text-xs text-muted-foreground">
+                          {entry.startTime} - {entry.endTime}
                         </div>
                       )}
                     </div>

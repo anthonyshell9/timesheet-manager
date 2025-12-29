@@ -86,18 +86,25 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const isOwner = timesheet.userId === session.user.id;
     const isAdmin = session.user.role === 'ADMIN';
     const isValidator = session.user.role === 'VALIDATOR';
+    const isManager = timesheet.user.manager?.id === session.user.id;
 
     // Check if user is a validator for any project in this timesheet
     let canValidate = false;
-    if (isValidator && !isOwner) {
+    if ((isValidator || isManager) && !isOwner) {
       const projectIds = [...new Set(timesheet.timeEntries.map((e) => e.projectId))];
-      const validatorCheck = await prisma.projectValidator.findFirst({
-        where: {
-          userId: session.user.id,
-          projectId: { in: projectIds },
-        },
-      });
-      canValidate = !!validatorCheck;
+      if (projectIds.length > 0) {
+        const validatorCheck = await prisma.projectValidator.findFirst({
+          where: {
+            userId: session.user.id,
+            projectId: { in: projectIds },
+          },
+        });
+        canValidate = !!validatorCheck;
+      }
+      // Manager can always view their subordinates' timesheets
+      if (isManager) {
+        canValidate = true;
+      }
     }
 
     if (!isOwner && !isAdmin && !canValidate) {

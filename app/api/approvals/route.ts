@@ -125,15 +125,28 @@ export async function POST(request: NextRequest) {
     });
 
     // Update timesheet status
-    const timesheetStatus = data.status === 'APPROVED' ? 'APPROVED' : 'REJECTED';
-    await prisma.timeSheet.update({
-      where: { id: data.timesheetId },
-      data: {
-        status: timesheetStatus,
-        lockedAt: new Date(),
-        lockedById: session.user.id,
-      },
-    });
+    // If rejected, automatically reopen the timesheet so the user can make corrections
+    // If approved, lock the timesheet
+    if (data.status === 'APPROVED') {
+      await prisma.timeSheet.update({
+        where: { id: data.timesheetId },
+        data: {
+          status: 'APPROVED',
+          lockedAt: new Date(),
+          lockedById: session.user.id,
+        },
+      });
+    } else {
+      // Rejected -> automatically reopen for user to edit
+      await prisma.timeSheet.update({
+        where: { id: data.timesheetId },
+        data: {
+          status: 'REOPENED',
+          lockedAt: null,
+          lockedById: null,
+        },
+      });
+    }
 
     // Create notification for user
     await prisma.notification.create({
@@ -141,11 +154,11 @@ export async function POST(request: NextRequest) {
         userId: approval.timesheet.userId,
         type: data.status === 'APPROVED' ? 'TIMESHEET_APPROVED' : 'TIMESHEET_REJECTED',
         title:
-          data.status === 'APPROVED' ? 'Feuille de temps approuvée' : 'Feuille de temps refusée',
+          data.status === 'APPROVED' ? 'Feuille de temps approuvée' : 'Feuille de temps à corriger',
         message:
           data.status === 'APPROVED'
             ? `Votre feuille de temps a été approuvée par ${session.user.name}`
-            : `Votre feuille de temps a été refusée par ${session.user.name}${data.comment ? `: ${data.comment}` : ''}`,
+            : `Votre feuille de temps a été refusée par ${session.user.name} et réouverte pour correction${data.comment ? `. Raison : ${data.comment}` : ''}`,
         data: {
           timesheetId: data.timesheetId,
           validatorId: session.user.id,
