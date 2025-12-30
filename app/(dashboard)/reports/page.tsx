@@ -17,6 +17,13 @@ import { CalendarIcon, Download, TrendingUp, Clock, Users, DollarSign } from 'lu
 import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { useSession } from 'next-auth/react';
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+}
 
 interface Project {
   id: string;
@@ -41,12 +48,19 @@ interface ReportData {
 }
 
 export default function ReportsPage() {
+  const { data: session } = useSession();
   const [startDate, setStartDate] = useState<Date>(startOfMonth(new Date()));
   const [endDate, setEndDate] = useState<Date>(endOfMonth(new Date()));
   const [projectId, setProjectId] = useState<string>('all');
+  const [userId, setUserId] = useState<string>('all');
   const [projects, setProjects] = useState<Project[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const isAdmin = session?.user?.role === 'ADMIN';
+  const isValidator = session?.user?.role === 'VALIDATOR';
+  const canFilterByUser = isAdmin || isValidator;
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -64,6 +78,23 @@ export default function ReportsPage() {
   }, []);
 
   useEffect(() => {
+    if (!canFilterByUser) return;
+
+    const fetchUsers = async () => {
+      try {
+        const res = await fetch('/api/users?isActive=true');
+        const data = await res.json();
+        if (data.success) {
+          setUsers(data.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch users:', error);
+      }
+    };
+    fetchUsers();
+  }, [canFilterByUser]);
+
+  useEffect(() => {
     const fetchReport = async () => {
       setIsLoading(true);
       try {
@@ -73,6 +104,9 @@ export default function ReportsPage() {
         });
         if (projectId !== 'all') {
           params.append('projectId', projectId);
+        }
+        if (userId !== 'all' && canFilterByUser) {
+          params.append('userId', userId);
         }
 
         const res = await fetch(`/api/time-entries?${params}`);
@@ -147,7 +181,7 @@ export default function ReportsPage() {
     };
 
     fetchReport();
-  }, [startDate, endDate, projectId]);
+  }, [startDate, endDate, projectId, userId, canFilterByUser]);
 
   const handleExport = async (exportFormat: 'csv' | 'excel' | 'pdf') => {
     try {
@@ -158,6 +192,9 @@ export default function ReportsPage() {
       });
       if (projectId !== 'all') {
         params.append('projectId', projectId);
+      }
+      if (userId !== 'all' && canFilterByUser) {
+        params.append('userId', userId);
       }
 
       const response = await fetch(`/api/reports/export?${params}`);
@@ -274,6 +311,24 @@ export default function ReportsPage() {
                 ))}
               </SelectContent>
             </Select>
+
+            {/* User filter (Admin/Validator only) */}
+            {canFilterByUser && (
+              <Select value={userId} onValueChange={setUserId}>
+                <SelectTrigger className="w-[200px]">
+                  <Users className="mr-2 h-4 w-4" />
+                  <SelectValue placeholder="Tous les utilisateurs" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les utilisateurs</SelectItem>
+                  {users.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
 
             {/* Export buttons */}
             <div className="ml-auto flex gap-2">
