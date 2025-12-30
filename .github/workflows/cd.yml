@@ -39,13 +39,20 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
-      - name: Install production dependencies only
+      - name: Prepare production node_modules
         run: |
+          # Save the generated Prisma client
+          mkdir -p /tmp/prisma-client
+          cp -r node_modules/.prisma /tmp/prisma-client/
+          cp -r node_modules/@prisma /tmp/prisma-client/
+
+          # Remove node_modules and reinstall production only
           rm -rf node_modules
           npm ci --omit=dev --ignore-scripts
 
-      - name: Regenerate Prisma client for production
-        run: npx prisma generate
+          # Restore the generated Prisma client
+          cp -r /tmp/prisma-client/.prisma node_modules/
+          cp -r /tmp/prisma-client/@prisma node_modules/
 
       - name: Create deployment package
         run: |
