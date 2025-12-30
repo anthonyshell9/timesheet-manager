@@ -39,36 +39,47 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
-      - name: Prepare production node_modules
+      - name: Create deployment package (standalone)
         run: |
-          # Save the generated Prisma client
-          mkdir -p /tmp/prisma-client
-          cp -r node_modules/.prisma /tmp/prisma-client/
-          cp -r node_modules/@prisma /tmp/prisma-client/
+          # Copy standalone output
+          cp -r .next/standalone deploy
 
-          # Remove node_modules and reinstall production only
-          rm -rf node_modules
-          npm ci --omit=dev --ignore-scripts
+          # Copy static files
+          cp -r .next/static deploy/.next/static
 
-          # Restore the generated Prisma client
-          cp -r /tmp/prisma-client/.prisma node_modules/
-          cp -r /tmp/prisma-client/@prisma node_modules/
+          # Copy public folder
+          cp -r public deploy/public
 
-      - name: Create deployment package
-        run: |
-          mkdir -p deploy
-          cp -r .next deploy/
-          cp -r node_modules deploy/
-          cp -r prisma deploy/
-          cp -r public deploy/
-          cp package.json deploy/
-          cp next.config.js deploy/
+          # Copy Prisma schema and generated client
+          cp -r prisma deploy/prisma
+          mkdir -p deploy/node_modules/.prisma
+          mkdir -p deploy/node_modules/@prisma
+          cp -r node_modules/.prisma/client deploy/node_modules/.prisma/
+          cp -r node_modules/@prisma/client deploy/node_modules/@prisma/
+
+          # Create package.json with start script
+          cat > deploy/package.json << 'EOF'
+          {
+            "name": "timesheet-manager",
+            "version": "1.0.0",
+            "private": true,
+            "scripts": {
+              "start": "node server.js"
+            }
+          }
+          EOF
+
+          # Create zip
           cd deploy && zip -r ../app.zip .
 
       - name: Azure Login
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Configure App Service startup command
+        run: |
+          az webapp config set --name ${{ env.AZURE_WEBAPP_NAME }} --resource-group rg-timesheet-v2 --startup-file "node server.js"
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3

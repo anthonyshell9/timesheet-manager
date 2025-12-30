@@ -4,6 +4,9 @@ const nextConfig = {
   poweredByHeader: false,
   compress: true,
 
+  // Standalone output for Azure deployment
+  output: 'standalone',
+
   // Disable ESLint and TypeScript errors during build
   eslint: {
     ignoreDuringBuilds: true,
