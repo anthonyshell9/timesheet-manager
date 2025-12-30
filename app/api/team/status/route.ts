@@ -4,15 +4,27 @@ import {
   serverErrorResponse,
   requireValidator,
 } from '@/lib/api-utils';
-import { startOfWeek, endOfWeek } from 'date-fns';
+import { startOfWeek, endOfWeek, parseISO } from 'date-fns';
+import { NextRequest } from 'next/server';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const { session, error: authError } = await requireValidator();
     if (authError) return authError;
 
-    const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
-    const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
+    const searchParams = request.nextUrl.searchParams;
+
+    // Parse date range from query params or use current week
+    const startDateParam = searchParams.get('startDate');
+    const endDateParam = searchParams.get('endDate');
+    const userIdParam = searchParams.get('userId');
+
+    const weekStart = startDateParam
+      ? parseISO(startDateParam)
+      : startOfWeek(new Date(), { weekStartsOn: 1 });
+    const weekEnd = endDateParam
+      ? parseISO(endDateParam)
+      : endOfWeek(new Date(), { weekStartsOn: 1 });
 
     // Get team members based on user role
     let teamMemberIds: string[] = [];
@@ -46,17 +58,23 @@ export async function GET() {
       const projectIds = validatingProjects.map((p) => p.projectId);
 
       if (projectIds.length > 0) {
-        // Get users assigned to these projects
-        const projectUsers = await prisma.projectAssignment.findMany({
+        // Get users who have time entries on these projects
+        const projectTimeEntries = await prisma.timeEntry.findMany({
           where: {
             projectId: { in: projectIds },
             user: { isActive: true, id: { not: session.user.id } },
           },
           select: { userId: true },
+          distinct: ['userId'],
         });
-        const projectUserIds = projectUsers.map((p) => p.userId);
+        const projectUserIds = projectTimeEntries.map((p) => p.userId);
         teamMemberIds = [...new Set([...teamMemberIds, ...projectUserIds])];
       }
+    }
+
+    // Filter by specific user if requested
+    if (userIdParam && userIdParam !== 'all') {
+      teamMemberIds = teamMemberIds.filter(id => id === userIdParam);
     }
 
     if (teamMemberIds.length === 0) {
@@ -74,7 +92,7 @@ export async function GET() {
         timesheets: {
           where: {
             OR: [
-              // Timesheets submitted this week
+              // Timesheets submitted in the selected period
               {
                 status: { in: ['SUBMITTED', 'APPROVED'] },
                 submittedAt: { gte: weekStart, lte: weekEnd },
@@ -93,7 +111,7 @@ export async function GET() {
             createdAt: true,
           },
           orderBy: { createdAt: 'desc' },
-          take: 1,
+          take: 5,
         },
         timeEntries: {
           where: {
@@ -125,8 +143,8 @@ export async function GET() {
     });
 
     const result = teamMembers.map((member) => {
-      const totalHoursThisWeek = member.timeEntries.reduce((acc, e) => acc + e.duration, 0) / 60;
-      const hasSubmittedThisWeek = member.timesheets.some(
+      const totalHoursInPeriod = member.timeEntries.reduce((acc, e) => acc + e.duration, 0) / 60;
+      const hasSubmittedInPeriod = member.timesheets.some(
         (ts) =>
           ts.submittedAt &&
           new Date(ts.submittedAt) >= weekStart &&
@@ -140,10 +158,10 @@ export async function GET() {
         name: member.name,
         email: member.email,
         role: member.role,
-        hasSubmittedThisWeek,
-        hasSubmittedThisMonth: hasSubmittedThisWeek, // Simplified
+        hasSubmittedThisWeek: hasSubmittedInPeriod,
+        hasSubmittedThisMonth: hasSubmittedInPeriod,
         lastTimesheetDate: lastTimesheetByUser[member.id]?.toISOString() || null,
-        totalHoursThisWeek,
+        totalHoursThisWeek: totalHoursInPeriod,
         pendingTimesheet: pendingTimesheet
           ? { id: pendingTimesheet.id, totalHours: Number(pendingTimesheet.totalHours) }
           : null,

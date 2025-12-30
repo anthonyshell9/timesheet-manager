@@ -22,10 +22,19 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/components/ui/use-toast';
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { CheckCircle, XCircle, Clock, Eye, RefreshCw, FileText, Users, AlertTriangle } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Eye, RefreshCw, FileText, Users, AlertTriangle, CalendarIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 
@@ -74,7 +83,13 @@ export default function ValidationsPage() {
 
   // Team status
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [allTeamMembers, setAllTeamMembers] = useState<TeamMember[]>([]);
   const [isLoadingTeam, setIsLoadingTeam] = useState(true);
+
+  // Team filters
+  const [teamStartDate, setTeamStartDate] = useState<Date>(startOfWeek(new Date(), { weekStartsOn: 1 }));
+  const [teamEndDate, setTeamEndDate] = useState<Date>(endOfWeek(new Date(), { weekStartsOn: 1 }));
+  const [teamUserId, setTeamUserId] = useState<string>('all');
 
   const fetchApprovals = async () => {
     try {
@@ -95,10 +110,19 @@ export default function ValidationsPage() {
     fetchApprovals();
   }, [filter]);
 
-  // Fetch team status
+  // Fetch team status with filters
   const fetchTeamStatus = async () => {
+    setIsLoadingTeam(true);
     try {
-      const res = await fetch('/api/team/status');
+      const params = new URLSearchParams({
+        startDate: teamStartDate.toISOString(),
+        endDate: teamEndDate.toISOString(),
+      });
+      if (teamUserId !== 'all') {
+        params.append('userId', teamUserId);
+      }
+
+      const res = await fetch(`/api/team/status?${params}`);
       const data = await res.json();
       if (data.success) {
         setTeamMembers(data.data);
@@ -110,11 +134,30 @@ export default function ValidationsPage() {
     }
   };
 
+  // Fetch all team members for the filter dropdown (without date filter)
+  const fetchAllTeamMembers = async () => {
+    try {
+      const res = await fetch('/api/team/status');
+      const data = await res.json();
+      if (data.success) {
+        setAllTeamMembers(data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch all team members:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (session?.user?.role === 'ADMIN' || session?.user?.role === 'VALIDATOR') {
+      fetchAllTeamMembers();
+    }
+  }, [session]);
+
   useEffect(() => {
     if (session?.user?.role === 'ADMIN' || session?.user?.role === 'VALIDATOR') {
       fetchTeamStatus();
     }
-  }, [session]);
+  }, [session, teamStartDate, teamEndDate, teamUserId]);
 
   const handleAction = async () => {
     if (!selectedApproval || !dialogAction) return;
@@ -407,6 +450,103 @@ export default function ValidationsPage() {
 
         {/* Team Status Tab */}
         <TabsContent value="team" className="space-y-6">
+          {/* Filters */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Filtres</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap items-center gap-4">
+                {/* Date Range */}
+                <div className="flex items-center gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="justify-start">
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {format(teamStartDate, 'dd/MM/yyyy', { locale: fr })}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={teamStartDate}
+                        onSelect={(d) => d && setTeamStartDate(d)}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <span>-</span>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="justify-start">
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {format(teamEndDate, 'dd/MM/yyyy', { locale: fr })}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={teamEndDate}
+                        onSelect={(d) => d && setTeamEndDate(d)}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                {/* Quick ranges */}
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setTeamStartDate(startOfWeek(new Date(), { weekStartsOn: 1 }));
+                      setTeamEndDate(endOfWeek(new Date(), { weekStartsOn: 1 }));
+                    }}
+                  >
+                    Cette semaine
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setTeamStartDate(startOfMonth(new Date()));
+                      setTeamEndDate(endOfMonth(new Date()));
+                    }}
+                  >
+                    Ce mois
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setTeamStartDate(subDays(new Date(), 30));
+                      setTeamEndDate(new Date());
+                    }}
+                  >
+                    30 derniers jours
+                  </Button>
+                </div>
+
+                {/* User filter */}
+                <Select value={teamUserId} onValueChange={setTeamUserId}>
+                  <SelectTrigger className="w-[200px]">
+                    <Users className="mr-2 h-4 w-4" />
+                    <SelectValue placeholder="Tous les collaborateurs" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous les collaborateurs</SelectItem>
+                    {allTeamMembers.map((member) => (
+                      <SelectItem key={member.id} value={member.id}>
+                        {member.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -414,8 +554,8 @@ export default function ValidationsPage() {
                 Suivi des feuilles de temps de l'équipe
               </CardTitle>
               <CardDescription>
-                Semaine du {format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'd MMMM', { locale: fr })} au{' '}
-                {format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'd MMMM yyyy', { locale: fr })}
+                Du {format(teamStartDate, 'd MMMM', { locale: fr })} au{' '}
+                {format(teamEndDate, 'd MMMM yyyy', { locale: fr })}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -437,7 +577,7 @@ export default function ValidationsPage() {
                     <TableRow>
                       <TableHead>Collaborateur</TableHead>
                       <TableHead>Statut semaine</TableHead>
-                      <TableHead>Heures cette semaine</TableHead>
+                      <TableHead>Heures (période)</TableHead>
                       <TableHead>Dernière FDT</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
