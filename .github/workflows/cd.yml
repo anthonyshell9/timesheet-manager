@@ -77,12 +77,9 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Configure App Service startup command
-        run: |
-          az webapp config set --name ${{ env.AZURE_WEBAPP_NAME }} --resource-group rg-timesheet-v2 --startup-file "node server.js"
-
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           package: app.zip
+          startup-command: 'node server.js'
